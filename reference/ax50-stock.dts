@@ -1,0 +1,1330 @@
+/dts-v1/;
+
+/ {
+	#address-cells = <0x01>;
+	#size-cells = <0x01>;
+	compatible = "lantiq,grx500\0lantiq,xrx500";
+	model = "EASY350 ANYWAN (GRX350) Router model";
+
+	aliases {
+		serial0 = "/ssx4@16000000/serial@600000";
+		serial1 = "/ssx4@16000000/serial@700000";
+		dma0 = "/ssx4@16000000/dma@E00000";
+		dma1 = "/ssx2@1a000000/dma@100000";
+		dma2 = "/ssx2@1a000000/dma@200000";
+		dma3 = "/ssx1@1c000000/dma@100000";
+		dma4 = "/ssx1@1c000000/dma@200000";
+		dma5 = "/ssx0@1E000000/dma@300000";
+		dma6 = "/ssx0@1E000000/dma@400000";
+		pcie0 = "/ssx3@18000000/pcie@900000";
+		pcie1 = "/ssx3@18000000/pcie@400000";
+		pcie2 = "/ssx3@18000000/pcie@E00000";
+		usb0 = "/ssx2@1a000000/usb@300000";
+		usb1 = "/ssx2@1a000000/usb@500000";
+		spi1 = "/ssx4@16000000/spi@900000";
+		xbar0 = "/ssx0@1E000000/xbar@1F00000";
+		xbar1 = "/ssx1@1c000000/xbar@1F00000";
+		xbar2 = "/ssx2@1a000000/xbar@1F00000";
+		xbar6 = "/ssx6@12000000/xbar@1F00000";
+		xbar7 = "/ssx7@a0000000/xbar@3000000";
+		usb0_phy = "/ssx2@1a000000/phy@400000";
+		usb1_phy = "/ssx2@1a000000/phy@600000";
+	};
+
+	cpus {
+
+		cpu@0 {
+			compatible = "mips,InterAptiv";
+			default-OS = "LINUX";
+		};
+
+		cpu@1 {
+			compatible = "mips,InterAptiv";
+			default-OS = "LINUX";
+		};
+
+		cpu@2 {
+			compatible = "mips,InterAptiv";
+			default-OS = "LINUX";
+		};
+
+		cpu@3 {
+			compatible = "mips,InterAptiv";
+			default-OS = "MPEFW";
+		};
+	};
+
+	ssx0@1E000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x1e000000 0x2000000>;
+		ranges = <0x00 0x1e000000 0x2000000>;
+
+		pmi@1100000 {
+			compatible = "lantiq,pmi-xrx500";
+			reg = <0x1100000 0x100>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x66>;
+		};
+
+		eip97@100000 {
+			compatible = "lantiq,crypto-xrx500";
+			reg = <0x100000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x61 0x62 0x63>;
+		};
+
+		dma@300000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x300000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4d>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x18>;
+			lantiq,dma-chan-fc = <0x00>;
+			lantiq,dma-desc-fod = <0x00>;
+			lantiq,dma-desc-in-sram = <0x01>;
+			lantiq,dma-drb = <0x00>;
+			lantiq,dma-byte-en = <0x01>;
+			lantiq,budget = <0x14>;
+		};
+
+		dma@400000 {
+			status = "disabled";
+			compatible = "lantiq,dma-grx500";
+			reg = <0x400000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4e>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x18>;
+			lantiq,dma-chan-fc = <0x00>;
+			lantiq,dma-desc-fod = <0x00>;
+			lantiq,dma-desc-in-sram = <0x00>;
+			lantiq,dma-drb = <0x00>;
+		};
+
+		cbm@700000 {
+			status = "ok";
+			compatible = "lantiq,cbm-xrx500";
+			reg = <0x700000 0x1000 0x710000 0x10000 0x720000 0x4000 0x730000 0x14000 0x750000 0x400 0x750800 0x400 0x760000 0x10000 0x780000 0x20000 0x7c0000 0x30000 0x800000 0x100000 0x900000 0x100000 0x500000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0xb6 0xba 0xbb 0xbc 0xbd>;
+
+			ltq_dqm_ports {
+
+				DQ1 {
+					lantiq,cbm-config = <0x01 0x22 0xff 0xff 0x05 0x01>;
+				};
+
+				DQ3 {
+					lantiq,cbm-config = <0x03 0x24 0xff 0xff 0x04 0x01>;
+				};
+
+				DQ6 {
+					lantiq,cbm-config = <0x06 0x10 0x02 0x01 0x01 0x02>;
+				};
+
+				DQ7 {
+					lantiq,cbm-config = <0x07 0x11 0x02 0x02 0x01 0x02>;
+				};
+
+				DQ8 {
+					lantiq,cbm-config = <0x08 0x12 0x02 0x03 0x01 0x02>;
+				};
+
+				DQ9 {
+					lantiq,cbm-config = <0x09 0x13 0x02 0x04 0x01 0x02>;
+				};
+
+				DQ10 {
+					lantiq,cbm-config = <0x0a 0x14 0x02 0x05 0x01 0x02>;
+				};
+
+				DQ11 {
+					lantiq,cbm-config = <0x0b 0x15 0x02 0x06 0x01 0x02>;
+				};
+
+				DQ12 {
+					lantiq,cbm-config = <0x0c 0x16 0x02 0x09 0x01 0x02>;
+				};
+
+				DQ13 {
+					lantiq,cbm-config = <0x0d 0x17 0x02 0x0a 0x01 0x02>;
+				};
+
+				DQ14 {
+					lantiq,cbm-config = <0x0e 0x18 0x02 0x0b 0x01 0x02>;
+				};
+
+				DQ15 {
+					lantiq,cbm-config = <0x0f 0x19 0x02 0x0c 0x01 0x02>;
+				};
+
+				DQ16 {
+					lantiq,cbm-config = <0x10 0x1a 0x02 0x0d 0x01 0x02>;
+				};
+
+				DQ17 {
+					lantiq,cbm-config = <0x11 0x1b 0x02 0x0e 0x01 0x02>;
+				};
+
+				DQ19 {
+					lantiq,cbm-config = <0x13 0x1c 0x01 0x0f 0x01 0x02>;
+				};
+
+				DQ20 {
+					lantiq,cbm-config = <0x14 0x1d 0x01 0x05 0x01 0x02>;
+				};
+
+				DQ21 {
+					lantiq,cbm-config = <0x15 0x1e 0x01 0x06 0x01 0x02>;
+				};
+
+				DQ22 {
+					lantiq,cbm-config = <0x16 0x29 0x01 0x0b 0x01 0x02>;
+				};
+
+				DQ18 {
+					lantiq,cbm-config = <0x12 0x00 0x01 0x0d 0x01 0x02>;
+				};
+
+				DQ23 {
+					lantiq,cbm-config = <0x17 0x1f 0xff 0xff 0x01 0x02>;
+				};
+
+				DQ24 {
+					lantiq,cbm-config = <0x18 0x26 0xff 0xff 0x01 0x20>;
+				};
+
+				DQ25 {
+					lantiq,cbm-config = <0x19 0x27 0xff 0xff 0x01 0x20>;
+				};
+
+				DQ26 {
+					lantiq,cbm-config = <0x1a 0x28 0xff 0xff 0x01 0x20>;
+				};
+
+				DQ4 {
+					lantiq,cbm-config = <0x04 0x20 0xff 0xff 0x01 0x20>;
+				};
+
+				DQ2 {
+					lantiq,cbm-config = <0x02 0x23 0xff 0xff 0x02 0x01>;
+				};
+
+				DQ5 {
+					lantiq,cbm-config = <0x05 0x25 0xff 0xff 0x01 0x02>;
+				};
+			};
+
+			ltq_eqm_ports {
+
+				EQ1 {
+					lantiq,cbm-config = <0x00 0xff 0xff 0xff 0x02 0x02>;
+				};
+
+				EQ2 {
+					lantiq,cbm-config = <0x01 0xff 0xff 0xff 0x03 0x02>;
+				};
+
+				EQ3 {
+					lantiq,cbm-config = <0x02 0xff 0xff 0xff 0x04 0x02>;
+				};
+
+				EQ4 {
+					lantiq,cbm-config = <0x03 0xff 0xff 0xff 0x05 0x02>;
+				};
+
+				EQ5 {
+					lantiq,cbm-config = <0x05 0x02 0x0e 0x00 0x07 0x02>;
+				};
+
+				EQ5_1 {
+					lantiq,cbm-config = <0x05 0x02 0x1e 0x01 0x07 0x02>;
+				};
+
+				EQ6 {
+					lantiq,cbm-config = <0x06 0x02 0x0f 0x00 0x07 0x02>;
+				};
+
+				EQ6_1 {
+					lantiq,cbm-config = <0x06 0x02 0x1f 0x01 0x07 0x02>;
+				};
+
+				EQ7 {
+					lantiq,cbm-config = <0x07 0x01 0x00 0x00 0x08 0x02>;
+				};
+
+				EQ7_1 {
+					lantiq,cbm-config = <0x07 0x01 0x10 0x01 0x08 0x02>;
+				};
+
+				EQ8 {
+					lantiq,cbm-config = <0x08 0x01 0x0f 0x00 0x08 0x02>;
+				};
+
+				EQ8_1 {
+					lantiq,cbm-config = <0x08 0x01 0x1f 0x01 0x08 0x02>;
+				};
+
+				EQ9 {
+					lantiq,cbm-config = <0x09 0xff 0xff 0xff 0x09 0x02>;
+				};
+
+				EQ12 {
+					lantiq,cbm-config = <0x0c 0x01 0x03 0x00 0x0b 0x400>;
+				};
+
+				EQ15 {
+					lantiq,cbm-config = <0x0f 0xff 0xff 0xff 0x0a 0x20>;
+				};
+			};
+		};
+
+		mps@1107000 {
+			compatible = "lantiq,xrx500-mps";
+			reg = <0x1107000 0x400>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x9a 0x9b>;
+			lantiq,mbx = <0x02>;
+		};
+
+		mpsmbx@1200000 {
+			reg = <0x1200000 0x200>;
+			linux,phandle = <0x02>;
+			phandle = <0x02>;
+		};
+
+		eth@a00000 {
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+			compatible = "lantiq,xrx500-net";
+			interrupt-parent = <0x01>;
+			interrupts = <0x38 0x35>;
+			lantiq,eth-rx-csum-offload = <0x01>;
+			status = "ok";
+
+			interface@0 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x01>;
+
+				ethernet@0 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x01>;
+					phy-mode = "rgmii";
+				};
+			};
+
+			interface@1 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x01>;
+
+				ethernet@1 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x02>;
+					interrupt-parent = <0x01>;
+					interrupts = <0x78>;
+					phy-mode = "rgmii";
+					phy-handle = <0x03>;
+				};
+			};
+
+			interface@2 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x02>;
+
+				ethernet@2 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x03>;
+					interrupt-parent = <0x01>;
+					interrupts = <0x79>;
+					phy-mode = "rgmii";
+					phy-handle = <0x04>;
+				};
+			};
+
+			interface@3 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x03>;
+
+				ethernet@3 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x04>;
+					interrupt-parent = <0x01>;
+					interrupts = <0x86>;
+					phy-mode = "rgmii";
+					phy-handle = <0x05>;
+				};
+			};
+
+			interface@4 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x04>;
+
+				ethernet@4 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x05>;
+					interrupt-parent = <0x01>;
+					interrupts = <0x87>;
+					phy-mode = "rgmii";
+					phy-handle = <0x06>;
+				};
+			};
+
+			interface@5 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x05>;
+
+				ethernet@5 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x07>;
+				};
+			};
+
+			interface@6 {
+				compatible = "lantiq,xrx500-pdi";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				reg = <0x06>;
+				lantiq,wan;
+
+				ethernet@6 {
+					compatible = "lantiq,xrx500-pdi-port";
+					reg = <0x01>;
+					interrupt-parent = <0x01>;
+					interrupts = <0x77>;
+					phy-mode = "rgmii";
+					phy-handle = <0x07>;
+				};
+			};
+		};
+
+		mdio@0 {
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+			compatible = "lantiq,xrx500-mdio";
+
+			ethernet-phy@2 {
+				reg = <0x02>;
+				compatible = "lantiq,phy11g\0ethernet-phy-ieee802.3-c22";
+				linux,phandle = <0x03>;
+				phandle = <0x03>;
+			};
+
+			ethernet-phy@3 {
+				reg = <0x03>;
+				compatible = "lantiq,phy11g\0ethernet-phy-ieee802.3-c22";
+				linux,phandle = <0x04>;
+				phandle = <0x04>;
+			};
+
+			ethernet-phy@4 {
+				reg = <0x04>;
+				compatible = "lantiq,phy11g\0ethernet-phy-ieee802.3-c22";
+				linux,phandle = <0x05>;
+				phandle = <0x05>;
+			};
+
+			ethernet-phy@5 {
+				reg = <0x05>;
+				compatible = "lantiq,phy11g\0ethernet-phy-ieee802.3-c22";
+				linux,phandle = <0x06>;
+				phandle = <0x06>;
+			};
+		};
+
+		mdio@1 {
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+			compatible = "lantiq,xrx500-mdio-pae";
+
+			ethernet-phy@1 {
+				reg = <0x01>;
+				compatible = "lantiq,phy11g\0ethernet-phy-ieee802.3-c22";
+				linux,phandle = <0x07>;
+				phandle = <0x07>;
+			};
+		};
+
+		xbar@1F00000 {
+			compatible = "lantiq,ngi-ssx-grx500";
+			reg = <0x1f00000 0x100000>;
+		};
+	};
+
+	ssx1@1c000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x1c000000 0x2000000>;
+		ranges = <0x00 0x1c000000 0x2000000>;
+
+		gswitch@000000 {
+			compatible = "lantiq,xrx500-gswapi\0lantiq,xway-gswapi";
+			reg = <0x00 0x3000>;
+			lantiq,gsw-devid = <0x00>;
+		};
+
+		dma@100000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x100000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4b>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x18>;
+			lantiq,dma-chan-fc = <0x01>;
+			lantiq,dma-desc-fod = <0x01>;
+			lantiq,dma-desc-in-sram = <0x00>;
+			lantiq,dma-drb = <0x00>;
+			lantiq,dma-byte-en = <0x01>;
+			lantiq,budget = <0x14>;
+		};
+
+		dma@200000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x200000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4c>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x18>;
+			lantiq,dma-chan-fc = <0x00>;
+			lantiq,dma-desc-fod = <0x01>;
+			lantiq,dma-desc-in-sram = <0x01>;
+			lantiq,dma-drb = <0x00>;
+			lantiq,dma-byte-en = <0x01>;
+			lantiq,budget = <0x14>;
+		};
+
+		xbar@1F00000 {
+			compatible = "lantiq,ngi-ssx-grx500";
+			reg = <0x1f00000 0x100000>;
+		};
+	};
+
+	ssx2@1a000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x1a000000 0x2000000>;
+		ranges = <0x00 0x1a000000 0x2000000>;
+
+		gswitch@000000 {
+			compatible = "lantiq,xrx500-gswapi\0lantiq,xway-gswapi";
+			reg = <0x00 0x3000>;
+			lantiq,gsw-devid = <0x01>;
+		};
+
+		dma@100000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x100000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x49>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x6c>;
+			lantiq,dma-chan-fc = <0x01>;
+			lantiq,dma-desc-fod = <0x01>;
+			lantiq,dma-desc-in-sram = <0x01>;
+			lantiq,dma-drb = <0x00>;
+			lantiq,dma-byte-en = <0x01>;
+			lantiq,budget = <0x14>;
+			lantiq,dma-lab-cnt = <0x02>;
+		};
+
+		dma@200000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x200000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4a>;
+			lantiq,dma-pkt-arb = <0x02>;
+			lantiq,dma-burst = <0x10>;
+			lantiq,dma-polling-cnt = <0x18>;
+			lantiq,dma-chan-fc = <0x00>;
+			lantiq,dma-desc-fod = <0x01>;
+			lantiq,dma-desc-in-sram = <0x00>;
+			lantiq,dma-drb = <0x00>;
+			lantiq,dma-byte-en = <0x00>;
+			lantiq,budget = <0x14>;
+		};
+
+		usb@300000 {
+			compatible = "lantiq,dwc3-core";
+			reg = <0x300000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x3e>;
+			phys = <0x08>;
+			status = "ok";
+			vbus-gpio = <0x09 0x0e 0x00>;
+		};
+
+		phy@400000 {
+			compatible = "lantiq,dwc3-phy";
+			reg = <0x400000 0x100000>;
+			linux,phandle = <0x08>;
+			phandle = <0x08>;
+		};
+
+		usb_oc@0 {
+			compatible = "lantiq,usb-oc";
+			interrupt-parent = <0x01>;
+			interrupts = <0x3d>;
+			overcurrent-gpio = <0x0e>;
+			node-name = "pad";
+		};
+
+		usb@500000 {
+			compatible = "lantiq,dwc3-xrx500\0lantiq,dwc3-core";
+			reg = <0x500000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x5b>;
+			phys = <0x0a>;
+			status = "ok";
+			vbus-gpio = <0x09 0x02 0x00>;
+		};
+
+		phy@600000 {
+			compatible = "lantiq,dwc3-phy";
+			reg = <0x600000 0x100000>;
+			linux,phandle = <0x0a>;
+			phandle = <0x0a>;
+		};
+
+		usb_oc@1 {
+			compatible = "lantiq,usb-oc";
+			interrupt-parent = <0x01>;
+			interrupts = <0x3a>;
+			overcurrent-gpio = <0x02>;
+			node-name = "pad";
+		};
+
+		xbar@1F00000 {
+			compatible = "lantiq,ngi-ssx-grx500";
+			reg = <0x1f00000 0x100000>;
+		};
+	};
+
+	ssx3@18000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x18000000 0xa8000000>;
+		ranges = <0x00 0x18000000 0xa8000000>;
+
+		pcie@900000 {
+			status = "ok";
+			compatible = "lantiq,pcie-xrx500";
+			device_type = "pci";
+			#address-cells = <0x03>;
+			#size-cells = <0x02>;
+			reg = <0x900000 0x100000 0xa3000000 0x800000 0x800000 0x100000 0x500000 0x100000 0x600000 0x100000 0x700000 0x100000>;
+			reg-names = "csr\0cfg\0app\0phy\0msi\0pic";
+			interrupt-parent = <0x01>;
+			interrupts = <0x88 0x89 0x8a 0x8b 0x8c 0x8d 0x8e 0x8f 0xa0>;
+			interrupt-names = "msi0\0msi1\0msi2\0msi3\0msi4\0msi5\0msi6\0msi7\0ir";
+			#interrupt-cells = <0x01>;
+			interrupt-map-mask = <0x00 0x00 0x00 0x07>;
+			interrupt-map = <0x00 0x00 0x00 0x01 0x01 0x90 0x00 0x00 0x00 0x02 0x01 0x91 0x00 0x00 0x00 0x03 0x01 0x92 0x00 0x00 0x00 0x04 0x01 0x93>;
+			ranges = <0x2000000 0x00 0xa0000000 0xa0000000 0x00 0x3000000 0x1000000 0x00 0xa3800000 0xa3800000 0x00 0x100000>;
+			resets = <0x0b 0x0c>;
+			reset-names = "phy";
+			lantiq,inbound-shift = <0x05>;
+			lantiq,outbound-shift = <0x04>;
+			lantiq,clkout = <0x16>;
+			lantiq,rst-high-active = <0x00>;
+			lantiq,rst-interval = <0xc8>;
+			lantiq,inbound-swap = <0x01>;
+			lantiq,outbound-swap = <0x00>;
+			lantiq,phy-mode = <0x05>;
+			reset-gpio = <0x0c 0x0b 0x00>;
+		};
+
+		pcie@400000 {
+			status = "ok";
+			compatible = "lantiq,pcie-xrx500";
+			device_type = "pci";
+			#address-cells = <0x03>;
+			#size-cells = <0x02>;
+			reg = <0x400000 0x100000 0x9f000000 0x800000 0x300000 0x100000 0x00 0x100000 0x100000 0x100000 0x200000 0x100000>;
+			reg-names = "csr\0cfg\0app\0phy\0msi\0pic";
+			interrupt-parent = <0x01>;
+			interrupts = <0x2d 0x2e 0x2f 0x30 0x31 0x32 0x33 0x34 0x39>;
+			interrupt-names = "msi0\0msi1\0msi2\0msi3\0msi4\0msi5\0msi6\0msi7\0ir";
+			#interrupt-cells = <0x01>;
+			interrupt-map-mask = <0x00 0x00 0x00 0x07>;
+			interrupt-map = <0x00 0x00 0x00 0x01 0x01 0x11 0x00 0x00 0x00 0x02 0x01 0x12 0x00 0x00 0x00 0x03 0x01 0x13 0x00 0x00 0x00 0x04 0x01 0x14>;
+			ranges = <0x2000000 0x00 0x9c000000 0x9c000000 0x00 0x3000000 0x1000000 0x00 0x9f800000 0x9f800000 0x00 0x100000>;
+			resets = <0x0b 0x0d>;
+			reset-names = "phy";
+			lantiq,inbound-shift = <0x09>;
+			lantiq,outbound-shift = <0x08>;
+			lantiq,clkout = <0x17>;
+			lantiq,rst-high-active = <0x00>;
+			lantiq,rst-interval = <0xc8>;
+			lantiq,inbound-swap = <0x01>;
+			lantiq,outbound-swap = <0x00>;
+			lantiq,phy-mode = <0x05>;
+			reset-gpio = <0x0c 0x1d 0x00>;
+		};
+
+		pcie@E00000 {
+			status = "ok";
+			compatible = "lantiq,pcie-xrx500";
+			#address-cells = <0x03>;
+			#size-cells = <0x02>;
+			device_type = "pci";
+			reg = <0xe00000 0x100000 0xa7000000 0x800000 0xd00000 0x100000 0xa00000 0x100000 0xb00000 0x100000 0xc00000 0x100000>;
+			reg-names = "csr\0cfg\0app\0phy\0msi\0pic";
+			interrupt-parent = <0x01>;
+			interrupts = <0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x3f>;
+			interrupt-names = "msi0\0msi1\0msi2\0msi3\0msi4\0msi5\0msi6\0msi7\0ir";
+			#interrupt-cells = <0x01>;
+			interrupt-map-mask = <0x00 0x00 0x00 0x07>;
+			interrupt-map = <0x00 0x00 0x00 0x01 0x01 0xa3 0x00 0x00 0x00 0x02 0x01 0xa4 0x00 0x00 0x00 0x03 0x01 0xa5 0x00 0x00 0x00 0x04 0x01 0xa6>;
+			ranges = <0x2000000 0x00 0xa4000000 0xa4000000 0x00 0x3000000 0x1000000 0x00 0xa7800000 0xa7800000 0x00 0x100000>;
+			resets = <0x0b 0x0a>;
+			reset-names = "phy";
+			lantiq,inbound-shift = <0x0d>;
+			lantiq,outbound-shift = <0x0c>;
+			lantiq,clkout = <0x18>;
+			lantiq,rst-high-active = <0x01>;
+			lantiq,rst-interval = <0xc8>;
+			lantiq,inbound-swap = <0x01>;
+			lantiq,outbound-swap = <0x00>;
+			lantiq,phy-mode = <0x05>;
+			reset-gpio = <0x09 0x0e 0x00>;
+		};
+	};
+
+	ssx4@16000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x16000000 0x2000000>;
+		ranges = <0x00 0x16000000 0x2000000>;
+
+		localbus@0 {
+			#address-cells = <0x02>;
+			#size-cells = <0x01>;
+			ranges = <0x00 0x00 0x1c00000 0xfffff>;
+			compatible = "lantiq,localbus\0simple-bus";
+
+			nand-parts@0 {
+				compatible = "gen_nand\0lantiq,nand-xway";
+				lantiq,cs = <0x01>;
+				bank-width = <0x02>;
+				reg = <0x00 0x00 0x100000>;
+				#address-cells = <0x01>;
+				#size-cells = <0x01>;
+
+				partition@0 {
+					label = "uboot";
+					reg = <0x00 0x100000>;
+				};
+
+				partition@100000 {
+					label = "ubootconfigA";
+					reg = <0x100000 0x40000>;
+				};
+
+				partition@140000 {
+					label = "ubootconfigB";
+					reg = <0x140000 0x40000>;
+				};
+
+				partition@180000 {
+					label = "gphyfirmware";
+					reg = <0x180000 0x40000>;
+				};
+
+				partition@1c0000 {
+					label = "calibration";
+					reg = <0x1c0000 0x100000>;
+				};
+
+				partition@2c0000 {
+					label = "system_sw";
+					reg = <0x2c0000 0xfa00000>;
+				};
+
+				partition@FCC0000 {
+					label = "res";
+					reg = <0xfcc0000 0x340000>;
+				};
+			};
+		};
+
+		reset-controller@0000000 {
+			compatible = "lantiq,rcu-grx500\0lantiq,rcu-xrx500";
+			reg = <0x00 0x80000>;
+			#reset-cells = <0x01>;
+			linux,phandle = <0x0b>;
+			phandle = <0x0b>;
+		};
+
+		ts@080100 {
+			compatible = "lantiq,ts-grx500\0lantiq,ts-xrx500";
+			reg = <0x80100 0x0c>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x1b>;
+			lantiq,numofsensors = <0x02>;
+		};
+
+		speedm@080110 {
+			compatible = "lantiq,speedm-grx500\0lantiq,speedm-xrx500";
+			reg = <0x80110 0x0c>;
+			lantiq,thresholds_lvt = <0x01 0x2710 0x01 0x2710 0x01 0x2710>;
+			lantiq,thresholds_svt = <0x3e8 0xd16 0xd17 0xfa0 0xfa1 0x1f40>;
+			lantiq,sample_rate_svt = <0xff>;
+			lantiq,sample_rate_lvt = <0xff>;
+		};
+
+		cgu@200000 {
+			compatible = "lantiq,cgu-grx500\0lantiq,cgu-xrx500";
+			reg = <0x200000 0x100000>;
+		};
+
+		ebu@f00000 {
+			compatible = "lantiq,ebu-grx500\0lantiq,ebu-xrx500";
+			reg = <0xf00000 0x100000 0x1000000 0x100000>;
+			reg-names = "ebunand_reg\0hsnand_reg";
+		};
+
+		serial@600000 {
+			compatible = "lantiq,asc";
+			reg = <0x600000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x6f 0x71 0x72>;
+		};
+
+		serial@700000 {
+			compatible = "lantiq,asc";
+			reg = <0x700000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x54 0x56 0x57>;
+			status = "disabled";
+		};
+
+		spi@800000 {
+			compatible = "lantiq,spi-grx500\0lantiq,spi-lantiq-ssc";
+			reg = <0x800000 0x400>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x16 0x17 0x18>;
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+
+			ltq-spinand@1 {
+				status = "disabled";
+				#address-cells = <0x01>;
+				#size-cells = <0x01>;
+				reg = <0x01 0x01>;
+				compatible = "lantiq,generic-spinand";
+				linux,mtd-name = "17c00000.nand-parts";
+				spi-max-frequency = <0xeac027>;
+
+				partition@0 {
+					label = "uboot";
+					reg = <0x00 0x100000>;
+				};
+
+				partition@100000 {
+					label = "ubootconfigA";
+					reg = <0x100000 0x40000>;
+				};
+
+				partition@140000 {
+					label = "ubootconfigB";
+					reg = <0x140000 0x40000>;
+				};
+
+				partition@180000 {
+					label = "gphyfirmware";
+					reg = <0x180000 0x40000>;
+				};
+
+				partition@1c0000 {
+					label = "calibration";
+					reg = <0x1c0000 0x100000>;
+				};
+
+				partition@2c0000 {
+					label = "system_sw";
+					reg = <0x2c0000 0xfa00000>;
+				};
+
+				partition@FCC0000 {
+					label = "res";
+					reg = <0xfcc0000 0x340000>;
+				};
+			};
+		};
+
+		spi@900000 {
+			compatible = "lantiq,spi-ssc";
+			reg = <0x900000 0x400>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x6b 0x6c 0x6d>;
+			#address-cells = <0x01>;
+			#size-cells = <0x01>;
+			lantiq,ssc-port = <0x01>;
+			status = "ok";
+			legacy,cs-api-port = <0x01>;
+
+			ltq-spinand@0 {
+				#address-cells = <0x01>;
+				#size-cells = <0x01>;
+				reg = <0x00 0x01>;
+				compatible = "lantiq,generic-spinand";
+				linux,mtd-name = "17c00000.nand-parts";
+				spi-max-frequency = <0xf4240>;
+
+				partition@0 {
+					label = "uboot";
+					reg = <0x00 0x100000>;
+				};
+
+				partition@100000 {
+					label = "ubootconfigA";
+					reg = <0x100000 0x40000>;
+				};
+
+				partition@140000 {
+					label = "ubootconfigB";
+					reg = <0x140000 0x40000>;
+				};
+
+				partition@180000 {
+					label = "gphyfirmware";
+					reg = <0x180000 0x40000>;
+				};
+
+				partition@1c0000 {
+					label = "calibration";
+					reg = <0x1c0000 0x100000>;
+				};
+
+				partition@2c0000 {
+					label = "Bootcore";
+					reg = <0x2c0000 0x1000000>;
+				};
+
+				partition@12c0000 {
+					label = "system_sw";
+					reg = <0x12c0000 0x6c00000>;
+				};
+
+				partition@7Ec0000 {
+					label = "res";
+					reg = <0x7ec0000 0x140000>;
+				};
+			};
+		};
+
+		i2c@a00000 {
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+			status = "ok";
+			compatible = "lantiq,lantiq-i2c";
+			reg = <0xa00000 0x10000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x29 0x28 0x1f 0x2c>;
+			clock-frequency = <0x186a0>;
+
+			ina219@40 {
+				compatible = "ti,ina219";
+				reg = <0x40>;
+				shunt-resistor = <0x2710>;
+				rail-name = "PWR_12V";
+				calibration-factor = <0x2710000>;
+			};
+
+			tps65273@62 {
+				compatible = "ti,tps65273";
+				reg = <0x62>;
+
+				regulators {
+
+					dcdc2 {
+						regulator-name = "1V15VDD";
+						regulator-always-on;
+						regulator-min-microvolt = <0xdbba0>;
+						regulator-max-microvolt = <0x124f80>;
+						vout-slew-rate = <0x00>;
+						vout-psm-mode = <0x00>;
+						vout-irdrop-offset = <0x2710>;
+					};
+				};
+			};
+		};
+
+		gptu@b00000 {
+			compatible = "lantiq,gptu-xrx500";
+			reg = <0xb00000 0x400>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x7e 0x7f 0x80 0x81 0x82 0x83>;
+		};
+
+		gptu@300000 {
+			compatible = "lantiq,gptu-xrx500";
+			reg = <0x300000 0x400>;
+			interrupt-parent = <0x01>;
+			interrupts = <0xa8 0xa9 0xaa 0xab 0xac 0xad>;
+		};
+
+		pad@c80000 {
+			compatible = "lantiq,pad-xrx500";
+			lantiq,bank = <0x00>;
+			reg = <0xc80000 0x100>;
+		};
+
+		pad@c80100 {
+			compatible = "lantiq,pad-xrx500";
+			lantiq,bank = <0x01>;
+			reg = <0xc80100 0x100>;
+			lantiq,bbspi-en = <0x00>;
+		};
+
+		dma@E00000 {
+			compatible = "lantiq,dma0-grx500\0lantiq,dma-xway";
+			reg = <0xe00000 0x100000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x48>;
+			lantiq,desc-num = <0x10>;
+			lantiq,dma-burst = <0x02>;
+			lantiq,dma-polling-cnt = <0x04>;
+			lantiq,dma-drb = <0x01>;
+			lantiq,budget = <0x14>;
+		};
+
+		pinctrl {
+			compatible = "lantiq,pinctrl-xrx500";
+			pinctrl-names = "default";
+			pinctrl-0 = <0x0d>;
+
+			pinctrl {
+				linux,phandle = <0x0d>;
+				phandle = <0x0d>;
+
+				i2c {
+					lantiq,groups = "i2c";
+					lantiq,function = "i2c";
+					status = "ok";
+				};
+
+				nand {
+					lantiq,groups = "nand cle\0nand ale\0nand rd\0nand rdy\0nand d0\0nand d1\0nand d2\0nand d3\0nand d4\0nand d5\0nand d6\0nand d7\0nand cs1\0nand wr\0nand wp";
+					lantiq,function = "ebu";
+					status = "ok";
+				};
+
+				conf {
+					lantiq,pins = "io32\0io33";
+					lantiq,open-drain = <0x01>;
+				};
+			};
+
+			spi0 {
+				status = "disabled";
+
+				spi0 {
+					lantiq,groups = "spi0\0spi0_cs1";
+					lantiq,function = "spi0";
+				};
+			};
+
+			tdm {
+
+				tdm {
+					lantiq,groups = "tdm";
+					lantiq,function = "tdm";
+				};
+			};
+		};
+
+		gpio@c00000 {
+			compatible = "lantiq,gpio-xrx500";
+			gpio-controller;
+			#gpio-cells = <0x02>;
+			reg = <0xc00000 0x80>;
+			interrupt-controller;
+			#interrupt-cells = <0x02>;
+			interrupt-parent = <0x01>;
+			interrupts = <0xb4>;
+			lantiq,bank = <0x00>;
+			linux,phandle = <0x09>;
+			phandle = <0x09>;
+
+			nand_pins {
+				status = "disabled";
+				hog-as-output;
+				gpio = <0x18 0x0d 0x31 0x32 0x33 0x34 0x35 0x36 0x37 0x38 0x39 0x17 0x3b 0x3c>;
+			};
+
+			power_led {
+				status = "enable";
+				hog-as-output_1;
+				gpio = <0x15>;
+			};
+		};
+
+		gpio@c00100 {
+			compatible = "lantiq,gpio-xrx500";
+			gpio-controller;
+			#gpio-cells = <0x02>;
+			reg = <0xc00100 0x80>;
+			interrupt-controller;
+			#interrupt-cells = <0x02>;
+			interrupt-parent = <0x01>;
+			interrupts = <0xb5>;
+			lantiq,bank = <0x01>;
+			linux,phandle = <0x0c>;
+			phandle = <0x0c>;
+		};
+
+		sso@D00000 {
+			compatible = "lantiq,gpio-sso-xrx500";
+			reg = <0xd00000 0x2cc>;
+			#gpio-cells = <0x02>;
+			gpio-controller;
+		};
+	};
+
+	ssx6@12000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0x12000000 0x2000000>;
+		ranges = <0x00 0x12000000 0x2000000>;
+
+		gcr@300000 {
+			compatible = "lantiq,gcr-grx500";
+			reg = <0x300000 0x8000>;
+		};
+
+		cpc@310000 {
+			compatible = "lantiq,cpc-grx500";
+			reg = <0x310000 0x6000>;
+		};
+
+		gic@320000 {
+			#interrupt-cells = <0x01>;
+			interrupt-controller;
+			compatible = "lantiq,gic-grx500";
+			reg = <0x320000 0x20000>;
+			linux,phandle = <0x01>;
+			phandle = <0x01>;
+		};
+
+		gcrcus@3f0000 {
+			compatible = "lantiq,gcrcus-grx500";
+			reg = <0x3f0000 0x200>;
+		};
+
+		watchdog@0,0 {
+			#interrupt-cells = <0x01>;
+			compatible = "lantiq,wdt-xrx500";
+			reg = <0x00 0x00>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x108>;
+			timeout-sec = <0x05>;
+		};
+
+		xbar@1F00000 {
+			compatible = "lantiq,ngi-ssx-grx500";
+			reg = <0x1f00000 0x100000>;
+		};
+	};
+
+	ssx7@a0000000 {
+		#address-cells = <0x01>;
+		#size-cells = <0x01>;
+		compatible = "lantiq,ssx\0simple-bus";
+		reg = <0xa0000000 0x20000000>;
+		ranges = <0x00 0xa0000000 0x20000000>;
+
+		mpe@0 {
+			#address-cells = <0x01>;
+			#size-cells = <0x01>;
+			compatible = "lantiq,mpe-xrx500";
+			reg = <0x00 0x200000>;
+			dtlk_vpe_num = <0x01>;
+		};
+
+		toe@2000000 {
+			#address-cells = <0x01>;
+			#size-cells = <0x01>;
+			compatible = "lantiq,toe-xrx500";
+			reg = <0x2000000 0x10000 0x2013000 0x4000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0x4f 0x50 0x51 0x52 0x53 0xbe 0xbf 0xc0 0xc1 0xc2 0xc3 0xc4 0xc5 0xc6 0xc7>;
+		};
+
+		mcpy@2800000 {
+			#address-cells = <0x01>;
+			#size-cells = <0x01>;
+			compatible = "lantiq,mcpy-xrx500";
+			reg = <0x2800000 0x800000>;
+			interrupt-parent = <0x01>;
+			interrupts = <0xc8 0xc9 0xca 0xcb 0xcc 0xcd 0xce 0xcf 0xd0 0xd1 0xd2 0xd3 0xd4 0xd5 0xd6 0xd7 0xd8>;
+			interrupt-names = "yld0\0yld1\0yld2\0yld3\0yld4\0yld5\0yld6\0yld7\0irq0\0irq1\0irq2\0irq3\0irq4\0irq5\0irq6\0irq7";
+			lantiq,mcpy-minlen = <0x40>;
+			lantiq,umt0-dmacid = <0x07>;
+			lantiq,umt1-dmacid = <0x08>;
+			lantiq,umt2-dmacid = <0x09>;
+			lantiq,umt3-dmacid = <0x0a>;
+		};
+
+		xbar@3000000 {
+			compatible = "lantiq,ngi-ssx-grx500";
+			reg = <0x3000000 0x100000>;
+		};
+	};
+
+	cpuclocks {
+		compatible = "lantiq,scaling-frequencies";
+
+		cpuclocks@0 {
+			status = "disabled";
+			lantiq,cpuclocks = <0x23c34600 0x23c34600 0x23c34600 0x8f0d180>;
+			lantiq,threshold_dp = <0x01 0x01 0x01 0x65>;
+			lantiq,poll_period = <0x0b>;
+		};
+
+		cpuclocks@1 {
+			status = "okay";
+			lantiq,cpuclocks = <0x2faf0800 0x2faf0800 0x23c34600 0x8f0d180>;
+			lantiq,threshold_dp = <0x01 0x01 0x01 0x65>;
+			lantiq,poll_period = <0x0b>;
+		};
+
+		cpuclocks@2 {
+			status = "disabled";
+			lantiq,cpuclocks = <0x3b9aca00 0x27bc86aa 0x13de4355 0x9ef21aa>;
+			lantiq,threshold_dp = <0x01 0x01 0x01 0x65>;
+			lantiq,poll_period = <0x0b>;
+		};
+
+		cpuclocks@3 {
+			status = "disabled";
+			lantiq,cpuclocks = <0x47868c00 0x2faf0800 0x23c34600 0x8f0d180>;
+			lantiq,threshold_dp = <0x01 0x01 0x01 0x65>;
+			lantiq,poll_period = <0x0b>;
+		};
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <0x01>;
+		#size-cells = <0x00>;
+		poll-interval = <0x64>;
+
+		wifi {
+			label = "wifi";
+			gpios = <0x0c 0x04 0x01>;
+			linux,code = <0xee>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <0x09 0x08 0x01>;
+			linux,code = <0x211>;
+		};
+
+		reset {
+			label = "reset";
+			gpios = <0x09 0x16 0x01>;
+			linux,code = <0x198>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		lan {
+			label = "blue:lan";
+			gpios = <0x09 0x09 0x00>;
+			status = "ok";
+		};
+
+		usb_2 {
+			label = "blue:usb_2";
+			gpios = <0x09 0x0b 0x00>;
+			status = "ok";
+		};
+
+		o_wan {
+			label = "orange:internet";
+			gpios = <0x09 0x06 0x00>;
+			status = "ok";
+		};
+
+		b_wan {
+			label = "blue:internet";
+			gpios = <0x09 0x07 0x00>;
+			status = "ok";
+		};
+
+		power {
+			label = "blue:power";
+			gpios = <0x09 0x15 0x00>;
+			default-state = "on";
+			status = "ok";
+		};
+
+		wlan_2g {
+			label = "blue:wlan_2g";
+			gpios = <0x09 0x01 0x00>;
+			status = "ok";
+		};
+
+		wlan_5g {
+			label = "blue:wlan_5g";
+			gpios = <0x09 0x04 0x00>;
+			status = "ok";
+		};
+	};
+
+	chosen {
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x1e000000>;
+	};
+
+	mei@E116000 {
+		compatible = "lantiq,mei-xrx300";
+		reg = <0xe116000 0x100>;
+		interrupts = <0x3f>;
+	};
+
+	phy-xrx500 {
+		compatible = "lantiq,phy-xrx500";
+		firmware = "lantiq/phy11g_ip_BE.bin";
+		phy_id = [00 01 02 03 04];
+		resets = <0x0b 0x1d 0x0b 0x1c 0x0b 0x1a 0x0b 0x19 0x0b 0x1f>;
+		reset-names = "phy0\0phy1\0phy2\0phy3\0phy4";
+	};
+
+	gphy-fw {
+		compatible = "lantiq,xway-phy-fw";
+		fw-mode = "11G-FW";
+		no_of_phys = <0x05>;
+	};
+};

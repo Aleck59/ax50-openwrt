@@ -1,0 +1,149 @@
+---
+# Профиль сборки prplWrt для TP-Link Archer AX50 v1.
+#
+# Ставится в prplwrt/profiles/ax50.yml скриптом scripts/10-setup-tree.sh
+# и применяется командой:  ./scripts/gen_config.py ax50
+#
+# За основу взят штатный профиль prplWrt profiles/intel_mips.yml
+# (устройство Netgear RAX40 на том же GRX350 + WAV600), с двумя изменениями:
+#   1) все URL переведены на публичные зеркала gitlab.com — инфраструктура
+#      git.prpl.dev / intel.prpl.dev доступна не из всех сетей;
+#   2) profile указывает на наше устройство TPLINK_AX50.
+#
+# Ветки фидов и хэш ядра — та же комбинация, что в апстримном профиле:
+# ugw-8.4.1-cleanup + linux 727acdb0 (это ровно Linux 4.9.206, что совпадает
+# с LINUX_VERSION в intel_mips/xrx500/target.mk этой же ветки).
+
+profile: TPLINK_AX50
+target: intel_mips
+subtarget: xrx500
+external_target: True
+description: TP-Link Archer AX50 v1 (Intel GRX350 + WAV654 Wi-Fi 6)
+
+feeds:
+  - name: feed_target_mips
+    uri: https://gitlab.com/prpl-foundation/intel/feed_target_mips.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_datapath
+    uri: https://gitlab.com/prpl-foundation/intel/feed_datapath.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_ppa
+    uri: https://gitlab.com/prpl-foundation/intel/feed_ppa.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_gphy_firmware
+    uri: https://gitlab.com/prpl-foundation/intel/feed_gphy_firmware.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_switch_api
+    uri: https://gitlab.com/prpl-foundation/intel/feed_switch_api.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_wlan_6x
+    uri: https://gitlab.com/prpl-foundation/intel/feed_wlan_6x.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_opensource_apps
+    uri: https://gitlab.com/prpl-foundation/intel/feed_opensource_apps.git
+    branch: ugw-8.4.1-cleanup
+  - name: feed_pending
+    uri: https://gitlab.com/prpl-foundation/intel/feed-pending.git
+
+# Примечание: feed_prpl (prplMesh и прочее) в апстримном профиле указан как
+# git.prpl.dev/prplwrt/feed-prpl.git;prpl-19.07. На gitlab-зеркале ветки
+# prpl-19.07 нет (есть archive/prplos-19.07), а для базовой прошивки этот фид
+# не нужен, поэтому он здесь не подключается.
+
+packages:
+  # --- Wi-Fi: открытый драйвер WAV600/WAV654 + userspace ---
+  - kmod-iwlwav-driver-uci
+  - iwlwav-hostap-uci
+  - iwlwav-iw
+  - iwlwav-tools
+  - iwlwav-base-files
+  - ltq-wlan-wave_6x-uci
+  - dwpal_6x-uci
+  - swpal_6x-uci
+  # --- сеть/датапат/ускорение ---
+  - kmod-intel_eth_toe_drv_xrx500
+  - kmod-directconnect-dp
+  - kmod-litepath-hwacc
+  - kmod-mac-violation-mirror
+  - kmod-ppa-drv
+  - kmod-ppa-drv-accel
+  - kmod-ppa-drv-grx500
+  - kmod-ppa-drv-grx500-mpe
+  - kmod-ppa-drv-mpe-ip97
+  - kmod-ppa-drv-stack-al
+  - ppacmd
+  - switch_cli_ugw8
+  - ltq-gphy-fw-xrx500
+  # --- крипто ---
+  - kmod-eip97
+  - kmod-crypto-aead
+  - kmod-crypto-authenc
+  - kmod-crypto-cbc
+  - kmod-crypto-cmac
+  - kmod-crypto-deflate
+  - kmod-crypto-des
+  - kmod-crypto-echainiv
+  - kmod-crypto-hash
+  - kmod-crypto-hmac
+  - kmod-crypto-iv
+  - kmod-crypto-manager
+  - kmod-crypto-md5
+  - kmod-crypto-null
+  - kmod-crypto-pcompress
+  - kmod-crypto-rng
+  - kmod-crypto-sha1
+  - kmod-crypto-sha256
+  - kmod-crypto-sha512
+  - kmod-crypto-wq
+  - kmod-ipsec
+  - kmod-ipsec4
+  - kmod-ipsec6
+  - kmod-iptunnel4
+  - kmod-iptunnel6
+  # --- USB 3.0 ---
+  - kmod-usb-core
+  - kmod-usb-dwc3
+  - kmod-usb-dwc3-grx500
+  # --- прочее ---
+  - kmod-gpio-button-hotplug
+  - kmod-lib-zlib-deflate
+  - kmod-lib-zlib-inflate
+  - kmod-nls-base
+  - kmod-veth
+  - iwinfo
+  - libncurses
+  - libnl
+  - libnl-core
+  - libnl-genl
+  - libnl-nf
+  - libnl-route
+  - libopenssl
+  - libreadline
+  - librt
+  - libuuid
+  - nand-utils
+  - safeclibs
+  - safeclibs3
+  - terminfo
+  - uuidgen
+
+diffconfig: |
+  CONFIG_DEVEL=y
+  CONFIG_KERNEL_GIT_CLONE_URI="https://gitlab.com/prpl-foundation/intel/linux.git"
+  CONFIG_KERNEL_GIT_DEPTH="1000"
+  CONFIG_KERNEL_GIT_REF="727acdb060410a936330a2456f641b9473bf5121"
+  CONFIG_LTQ_SWITCH_CLI_UGW8_HELP_PRINTOUT=y
+  CONFIG_OPENSSL_ENGINE=y
+  CONFIG_OPENSSL_PREFER_CHACHA_OVER_GCM=y
+  CONFIG_OPENSSL_WITH_ASM=y
+  CONFIG_OPENSSL_WITH_CHACHA_POLY1305=y
+  CONFIG_OPENSSL_WITH_CMS=y
+  CONFIG_OPENSSL_WITH_DEPRECATED=y
+  CONFIG_OPENSSL_WITH_ERROR_MESSAGES=y
+  CONFIG_OPENSSL_WITH_PSK=y
+  CONFIG_OPENSSL_WITH_SRP=y
+  CONFIG_OPENSSL_WITH_TLS13=y
+  CONFIG_PACKAGE_luci=y
+  CONFIG_PACKAGE_luci-ssl=y
+  CONFIG_PACKAGE_ca-bundle=y
+  CONFIG_PACKAGE_ca-certificates=y

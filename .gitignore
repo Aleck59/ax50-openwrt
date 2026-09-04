@@ -1,0 +1,6 @@
+build/
+backups/
+stock-extracted/
+*.bin
+*.img
+!reference/*.dts

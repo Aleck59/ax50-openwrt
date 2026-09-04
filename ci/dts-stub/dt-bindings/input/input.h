@@ -1,0 +1,3 @@
+#define KEY_RESTART 408
+#define KEY_WPS_BUTTON 529
+#define KEY_RFKILL 247

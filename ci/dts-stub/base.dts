@@ -1,0 +1,32 @@
+/*
+ * Заглушка вместо easy350_anywan_axepoint_rt.dts из фида feed_target_mips.
+ * Нужна только для быстрой синтаксической проверки device/dts/tplink_ax50.dts
+ * без выкачивания всего дерева prplWrt: даёт метки gpio0/gpio1 и раздел
+ * nand-parts@0 с разметкой референс-платы, поверх которой наш DTS накладывает свою.
+ */
+/dts-v1/;
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	ssx4@16000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		gpio0: gpio@c00000 { gpio-controller; #gpio-cells = <2>; };
+		gpio1: gpio@c00100 { gpio-controller; #gpio-cells = <2>; };
+
+		localbus@0 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			nand-parts@0 {
+				#address-cells = <1>;
+				#size-cells = <1>;
+				partition@2c0000  { label = "Bootcore";  reg = <0x2c0000 0x1000000>; };
+				partition@12c0000 { label = "system_sw"; reg = <0x12c0000 0x6C00000>; };
+				partition@7Ec0000 { label = "res";       reg = <0x7EC0000 0x140000>; };
+			};
+		};
+	};
+};

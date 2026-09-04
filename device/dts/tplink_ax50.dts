@@ -1,0 +1,110 @@
+/*
+ * TP-Link Archer AX50 v1
+ *
+ * SoC:   Intel/MaxLinear AnyWAN GRX350 (lantiq,xrx500), MIPS interAptiv
+ * Wi-Fi: 2 x MaxLinear WAV654 (WAV600 gen6) on PCIe
+ * NAND:  256 MiB
+ *
+ * Базой взята референс-плата AxePoint GRX350 1600 Ethernet Router, потому что
+ * стоковая прошивка AX50 объявляет себя именно как "EASY350 ANYWAN (GRX350)
+ * Router model" с compatible "lantiq,grx500","lantiq,xrx500".
+ *
+ * Значения GPIO/светодиодов и разметка NAND взяты из DTB, извлечённого из
+ * официальной прошивки 1.1.2 Build 20251022 — см. reference/ax50-stock.dts
+ */
+
+#include "easy350_anywan_axepoint_rt.dts"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "TP-Link Archer AX50 v1";
+	compatible = "tplink,archer-ax50-v1", "intel,easy350_anywan",
+		     "lantiq,grx500", "lantiq,xrx500";
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <100>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+
+		wifi {
+			label = "wifi";
+			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RFKILL>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		power {
+			label = "ax50:blue:power";
+			gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		wlan2g {
+			label = "ax50:blue:wlan2g";
+			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+		};
+
+		wlan5g {
+			label = "ax50:blue:wlan5g";
+			gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+		};
+
+		lan {
+			label = "ax50:blue:lan";
+			gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+		};
+
+		wan_blue {
+			label = "ax50:blue:wan";
+			gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		};
+
+		wan_orange {
+			label = "ax50:orange:wan";
+			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		};
+
+		usb {
+			label = "ax50:blue:usb";
+			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+/*
+ * Разметка NAND 256 МиБ (у референс-платы — 128 МиБ и отдельный раздел Bootcore,
+ * которого у AX50 нет). Удаляем разделы базовой платы и объявляем свои.
+ */
+&{/ssx4@16000000/localbus@0/nand-parts@0} {
+	/delete-node/ partition@2c0000;
+	/delete-node/ partition@12c0000;
+	/delete-node/ partition@7Ec0000;
+
+	partition@2c0000 {
+		label = "system_sw";
+		reg = <0x02c0000 0xfa00000>;	/* 250 MiB, UBI: kernel + rootfs (банки A/B) */
+	};
+
+	partition@fcc0000 {
+		label = "res";
+		reg = <0xfcc0000 0x0340000>;	/* 3.25 MiB */
+	};
+};

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Отметка о сборке ax50-openwrt. Выполняется один раз при первом запуске.
+uci -q set system.@system[0].hostname='ArcherAX50' 2>/dev/null
+uci -q commit system 2>/dev/null
+cat > /etc/ax50-build <<'INFO'
+TP-Link Archer AX50 v1 — сборка из https://github.com/Aleck59/ax50-openwrt
+Платформа: intel_mips/xrx500 (Intel/MaxLinear GRX350), prplWrt.
+ВНИМАНИЕ: не стирайте MTD-раздел calibration — в нём калибровка Wi-Fi и MAC-адреса.
+INFO
+exit 0
