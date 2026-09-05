@@ -27,6 +27,49 @@ die() { printf '\n\033[1;31m!!! %s\033[0m\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" != 0 ] || die "не запускайте сборку от root — OpenWrt это не поддерживает"
 
+preflight() {
+	local bad=0
+
+	command -v gawk >/dev/null || { echo "нет gawk"; bad=1; }
+	command -v git  >/dev/null || { echo "нет git";  bad=1; }
+	command -v make >/dev/null || { echo "нет make"; bad=1; }
+	command -v perl >/dev/null || { echo "нет perl"; bad=1; }
+	python3 -c "import yaml" 2>/dev/null || { echo "нет python3-yaml"; bad=1; }
+
+	# OpenWrt 19.07 требует именно Python 2.x
+	if ! { python2.7 -V 2>&1 | grep -q "Python 2.7"; } &&
+	   ! { python2   -V 2>&1 | grep -q "Python 2";   } &&
+	   ! { python    -V 2>&1 | grep -q "Python 2";   }; then
+		echo "нет Python 2.x (в Ubuntu 24.04 его уже нет в репозиториях)"
+		bad=1
+	fi
+
+	# prereq-build.mk из 19.07 распознаёт только GCC 4.8-9.x
+	local gccver
+	gccver="$(gcc -dumpversion 2>/dev/null || echo 0)"
+	case "$gccver" in
+		4.[89]*|[5-9]|[5-9].*) ;;
+		*) echo "GCC $gccver не подходит: OpenWrt 19.07 понимает только 4.8-9.x"; bad=1 ;;
+	esac
+
+	if [ "$bad" != 0 ]; then
+		cat >&2 <<'HINT'
+
+Хост не подходит для сборки prplWrt (база OpenWrt 19.07).
+Самый простой путь — собрать в контейнере Ubuntu 20.04:
+
+    ./scripts/docker-build.sh setup
+    ./scripts/docker-build.sh build
+
+Либо доустановите недостающее вручную (см. docs/03-build.md).
+Проверку можно пропустить на свой страх и риск: SKIP_PREFLIGHT=1
+HINT
+		exit 1
+	fi
+}
+
+[ "${SKIP_PREFLIGHT:-0}" = 1 ] || preflight
+
 mkdir -p "$BUILD_DIR"
 
 log "1/5 База prplWrt"
@@ -47,8 +90,24 @@ cd "$TREE"
 # make defconfig выкинет символ TPLINK_AX50. Это нормально, чиним на шаге 5.
 ./scripts/gen_config.py "$PROFILE" || die "gen_config.py упал — смотрите вывод выше"
 
+# gen_config.py строит индексы фидов через make, а тот сначала прогоняет
+# проверку хостовых зависимостей. Если она падает, индексы получаются пустыми,
+# внешний таргет молча не устанавливается ("No feed for package 'intel_mips'"),
+# и defconfig скатывается на дефолтный ath79. Поэтому переиндексируем явно
+# и доустанавливаем — операция идемпотентная и быстрая.
+log "3b/5 Переиндексация фидов и установка внешнего таргета"
+./scripts/feeds update -i
+
+for f in feed_target_mips feed_datapath feed_ppa feed_gphy_firmware \
+         feed_switch_api feed_wlan_6x feed_opensource_apps feed_pending; do
+	[ -d "feeds/$f" ] && ./scripts/feeds install -a -f -p "$f" >/dev/null
+done
+./scripts/feeds install intel_mips
+
 TARGET_DIR="$TREE/feeds/feed_target_mips/intel_mips"
 [ -d "$TARGET_DIR" ] || die "таргет intel_mips не установился: нет $TARGET_DIR"
+[ -L "$TREE/target/linux/intel_mips" ] || \
+	die "target/linux/intel_mips не создан — внешний таргет не установился"
 
 log "4/5 Внедряем поддержку Archer AX50"
 cp -v "$REPO_ROOT/device/dts/tplink_ax50.dts"  "$TARGET_DIR/dts/"
@@ -79,6 +138,12 @@ make defconfig >/dev/null
 
 if grep -q "^${DEVICE_SYM}=y" .config; then
 	echo "устройство TPLINK_AX50 выбрано"
+	for p in kmod-iwlwav-driver-uci iwlwav-hostap-uci ltq-wlan-wave_6x-uci \
+	         kmod-intel_eth_toe_drv_xrx500 ltq-gphy-fw-xrx5xx; do
+		grep -q "^CONFIG_PACKAGE_$p=y" .config \
+			&& echo "  пакет $p: ок" \
+			|| echo "  ВНИМАНИЕ: пакет $p не выбран"
+	done
 else
 	die "символ ${DEVICE_SYM} не пережил defconfig.
 Обычно это значит, что ax50.mk не подхватился или в DTS ошибка.

@@ -68,7 +68,11 @@ TP-Link Archer AX50 v1 — платформа **Intel/MaxLinear AnyWAN GRX350 + 
 - [x] Профиль сборки prplWrt с зеркалами на gitlab.com ([`device/profiles/ax50.yml`](device/profiles/ax50.yml))
 - [x] DTS для Archer AX50 v1 ([`device/dts/tplink_ax50.dts`](device/dts/tplink_ax50.dts))
 - [x] Image recipe ([`device/image/ax50.mk`](device/image/ax50.mk))
-- [x] Скрипты подготовки дерева и сборки ([`scripts/`](scripts/))
+- [x] Скрипты подготовки дерева и сборки ([`scripts/`](scripts/)) — **подготовка дерева
+      проверена на практике**: фиды ставятся, таргет `intel_mips` устанавливается,
+      устройство `TPLINK_AX50` попадает в конфигурацию, все 70 пакетов профиля разрешаются
+- [x] Окружение сборки в контейнере Ubuntu 20.04 ([`docker/`](docker/)) — на современных
+      дистрибутивах OpenWrt 19.07 не собирается: нужен Python 2.x и GCC не новее 9.x
 - [x] Инструкции по прошивке и восстановлению через U-Boot/TFTP ([`docs/04-flashing.md`](docs/04-flashing.md))
 - [ ] Проверка сборки на железе — **требуется устройство и UART**
 
@@ -83,9 +87,17 @@ TP-Link Archer AX50 v1 — платформа **Intel/MaxLinear AnyWAN GRX350 + 
 git clone https://github.com/Aleck59/ax50-openwrt.git
 cd ax50-openwrt
 
-./scripts/00-deps.sh        # хостовые зависимости (Debian/Ubuntu)
-./scripts/10-setup-tree.sh  # клонирует prplWrt + фиды Intel, ставит поддержку AX50
-./scripts/20-build.sh       # сборка (первый раз ~2-4 часа)
+./scripts/docker-build.sh   # подготовка дерева + сборка в Ubuntu 20.04 (первый раз 2-4 часа)
+```
+
+Через контейнер — потому что база prplWrt это OpenWrt 19.07: ей нужен Python 2.x
+и GCC не новее 9.x, чего на современных дистрибутивах уже нет. Если у вас
+подходящий хост (например, Ubuntu 20.04), можно и напрямую:
+
+```bash
+./scripts/00-deps.sh
+./scripts/10-setup-tree.sh
+./scripts/20-build.sh
 ```
 
 Результат: `build/prplwrt/bin/targets/intel_mips/xrx500/`.
@@ -97,6 +109,7 @@ cd ax50-openwrt
 ## Структура
 
 ```
+docker/         окружение сборки (Ubuntu 20.04)
 docs/           технические документы (RU)
 scripts/        подготовка окружения, сборка, работа с устройством
 device/         всё, что добавляет поддержку AX50 в prplWrt

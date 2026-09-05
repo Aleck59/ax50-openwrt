@@ -73,7 +73,7 @@ packages:
   - kmod-ppa-drv-stack-al
   - ppacmd
   - switch_cli_ugw8
-  - ltq-gphy-fw-xrx500
+  - ltq-gphy-fw-xrx5xx
   # --- крипто ---
   - kmod-eip97
   - kmod-crypto-aead
