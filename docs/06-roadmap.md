@@ -37,12 +37,13 @@
 
 ## Открытые вопросы
 
-**1. Bootcore.** У референс-платы AxePoint есть отдельный MTD-раздел `Bootcore`
-(16 МиБ на `0x2c0000`); у AX50 его нет — там сразу `system_sw`. В `image/Makefile`
-таргета есть шаг `append-bootcore`, а в конфиге TP-Link фигурировал
-`CONFIG_XRX500_BOOTCORE_MODEL="GRX_350_550_WAVE600_BOOTCORE_SAMPLE"`. Нужно понять,
-куда AX50 кладёт bootcore (вероятно, внутрь образа ядра) и не нужно ли его добавлять
-в наш `fullimage`. Признак проблемы: ядро стартует, но не поднимаются датапат/Wi-Fi.
+**1. Bootcore — снят.** У референс-платы AxePoint есть отдельный MTD-раздел
+`Bootcore` (16 МиБ на `0x2c0000`); у AX50 его нет — там сразу `system_sw`.
+Выяснилось попутно при сборке пакетов: пакет `ltq-xrx500-bootcore` из открытого
+BSP собрать вообще нельзя — его `Build/Prepare` требует каталог
+`build_dir/xRX500_BootCore` из отдельного SDK, которого в публичных фидах нет
+(`ltq_bootcore_env_prepare.sh: ERROR: ... invalid environment directory`).
+Наш образ собирается без него, и это согласуется с разметкой AX50.
 
 **2. Калибровка Wi-Fi.** Как `iwlwav` в prplWrt получает EEPROM/калибровку и совпадает
 ли путь с тем, что ожидает AX50 (раздел `calibration`, 1 МиБ). Может потребоваться

@@ -1,0 +1,12 @@
+src-git packages https://git.openwrt.org/feed/packages.git^6df6880
+src-git luci https://git.openwrt.org/project/luci.git^f25285a
+src-git routing https://git.openwrt.org/feed/routing.git^820bb60
+src-git telephony https://git.openwrt.org/feed/telephony.git^f2dc3c0
+src-git feed_target_mips https://gitlab.com/prpl-foundation/intel/feed_target_mips.git^3ee38ff
+src-git feed_datapath https://gitlab.com/prpl-foundation/intel/feed_datapath.git^c70dd03
+src-git feed_ppa https://gitlab.com/prpl-foundation/intel/feed_ppa.git^8d633a4
+src-git feed_gphy_firmware https://gitlab.com/prpl-foundation/intel/feed_gphy_firmware.git^5fc1735
+src-git feed_switch_api https://gitlab.com/prpl-foundation/intel/feed_switch_api.git^d6321c7
+src-git feed_wlan_6x https://gitlab.com/prpl-foundation/intel/feed_wlan_6x.git^d925a92
+src-git feed_opensource_apps https://gitlab.com/prpl-foundation/intel/feed_opensource_apps.git^4ab5c90
+src-git feed_pending https://gitlab.com/prpl-foundation/intel/feed-pending.git^d921446

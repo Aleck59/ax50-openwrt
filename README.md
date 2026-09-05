@@ -82,7 +82,11 @@ TP-Link Archer AX50 v1 — платформа **Intel/MaxLinear AnyWAN GRX350 + 
       [`reference/build/`](reference/build/)
 - [x] Разобрано, откуда AX50 берёт MAC-адреса — по GPL-коду и стоковой прошивке
       ([`docs/07-mac.md`](docs/07-mac.md)), логика вывода адресов перенесена в нашу сборку
-- [x] Сборка полного репозитория пакетов ([`docs/08-packages.md`](docs/08-packages.md))
+- [x] **Собран полный репозиторий пакетов — 7425 штук** (3735 `packages`, 2112 LuCI,
+      693 модуля ядра, 414 `base`, 361 telephony, 90 routing, 20 из фидов Intel), 714 МБ.
+      Не собралось 52 пакета из ~8280, ни одного важного для этого роутера.
+      Список с версиями — [`reference/build/packages-list.txt`](reference/build/packages-list.txt),
+      как подключить к роутеру — [`docs/08-packages.md`](docs/08-packages.md)
 - [ ] Проверка на железе — **требуется устройство и UART**
 
 > ⚠️ Прошивка **не проверена на устройстве**. До первой заливки в NAND обязательно

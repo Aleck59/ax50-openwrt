@@ -20,17 +20,42 @@ docker run --rm -v "$PWD:/work" -e BUILD_DIR=/work/build ax50-build \
     bash /work/scripts/30-build-packages.sh
 ```
 
-Результат:
+Результат — два дерева, оба нужны:
 
 ```
-build/prplwrt/bin/packages/mips_24kc_nomips16/
-    base/            Packages  Packages.gz  *.ipk
-    packages/        ...
-    luci/            ...
-    routing/  telephony/  feed_wlan_6x/  feed_ppa/  ...
+build/prplwrt/bin/packages/mips_24kc_nomips16/   # userspace, по фидам
+    base/ packages/ luci/ routing/ telephony/ feed_wlan_6x/ feed_ppa/ ...
+build/prplwrt/bin/targets/intel_mips/xrx500/packages/   # модули ядра
 ```
 
 Архитектура пакетов для AX50 — **`mips_24kc_nomips16`**.
+
+## Что реально собирается
+
+Проверено полным прогоном на 4 ядрах (Ubuntu 20.04):
+
+| Фид | Собрано |
+|---|---:|
+| `packages` | 3735 |
+| `luci` | 2112 |
+| модули ядра | 693 |
+| `base` | 414 |
+| `telephony` | 361 |
+| `routing` | 90 |
+| фиды Intel (Wi-Fi, PPA, GPHY, switch) | 20 |
+| **всего** | **7425** |
+
+Объём — 714 МБ. Полный список с версиями:
+[`reference/build/packages-list.txt`](../reference/build/packages-list.txt).
+
+Не собралось 52 пакета из ~8280 выбранных (0.6%). Из них важных для этого
+роутера нет ни одного: `mac80211`, `mt76`, `ath10k-ct`, `ath10k-firmware`,
+`linux-firmware` — чужие Wi-Fi-стеки (у нас `iwlwav` со своим backport),
+`swconfig` — вместо него вендорский `switch_cli`, `ltq-xrx500-bootcore` —
+требует приватного SDK. Остальное — модули Perl, `golang`, `ruby`, `postfix`,
+`openvswitch`, `freeradius3` и подобное: фиды 19.07 датированы 2019-2021
+годами, часть исходников по исходным URL уже недоступна, часть не дружит
+со старым тулчейном.
 
 ## Как это работает
 
@@ -93,21 +118,26 @@ Intel/MaxLinear 4.9 со своим набором патчей. Часть kmod
 
 ### Вариант 1: локальный HTTP-сервер
 
-На компьютере, где лежит сборка:
+Сложите оба дерева в один каталог — модули ядра удобно положить в `kmods/`:
 
 ```bash
-cd build/prplwrt/bin/packages/mips_24kc_nomips16
+mkdir -p /srv/ax50 && cd /srv/ax50
+cp -a .../bin/packages/mips_24kc_nomips16/. .
+mkdir -p kmods && cp -a .../bin/targets/intel_mips/xrx500/packages/. kmods/
 python3 -m http.server 8080
 ```
 
-На роутере — добавить источники в `/etc/opkg/customfeeds.conf`
+На роутере — источники в `/etc/opkg/customfeeds.conf`
 (IP компьютера подставьте свой):
 
 ```
-src/gz ax50_base     http://192.168.1.100:8080/base
-src/gz ax50_packages http://192.168.1.100:8080/packages
-src/gz ax50_luci     http://192.168.1.100:8080/luci
-src/gz ax50_routing  http://192.168.1.100:8080/routing
+src/gz ax50_base      http://192.168.1.100:8080/base
+src/gz ax50_kmods     http://192.168.1.100:8080/kmods
+src/gz ax50_packages  http://192.168.1.100:8080/packages
+src/gz ax50_luci      http://192.168.1.100:8080/luci
+src/gz ax50_routing   http://192.168.1.100:8080/routing
+src/gz ax50_telephony http://192.168.1.100:8080/telephony
+src/gz ax50_wave      http://192.168.1.100:8080/feed_wlan_6x
 ```
 
 Затем:
