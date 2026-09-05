@@ -37,6 +37,16 @@ for sym in CONFIG_ALL CONFIG_ALL_KMODS; do
 	sed -i "/^# ${sym} is not set\$/d; /^${sym}=/d" .config
 	echo "${sym}=y" >> .config
 done
+
+# Ключевой момент: `make defconfig` не пересматривает символы, у которых в
+# .config уже стоит явное значение, а после сборки образа там на каждый
+# невыбранный пакет записано "# CONFIG_PACKAGE_xxx is not set". Умолчание
+# `default m if ALL` в такой ситуации не срабатывает, и включение CONFIG_ALL
+# не даёт ничего. Поэтому сначала убираем эти строки — тогда defconfig
+# проставит пакетам m. Строки CONFIG_PACKAGE_xxx=y (то, что идёт в образ)
+# не трогаем: они должны остаться в образе.
+sed -i '/^# CONFIG_PACKAGE_.* is not set$/d' .config
+
 rm -rf tmp
 make defconfig >/dev/null
 
