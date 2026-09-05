@@ -36,8 +36,19 @@ cd "$TREE"
 # сохраняем конфигурацию «только образ», чтобы можно было вернуться
 [ -f .config.image-only ] || cp .config .config.image-only
 
+# Фиды packages/luci/routing/telephony при сборке образа в дерево не ставятся —
+# 10-setup-tree.sh устанавливает только фиды Intel, потому что образу больше
+# ничего не нужно. Без этого шага "все пакеты" оказываются неполными: доступно
+# около 7500 пакетов сообщества, а собирается только то, что есть в дереве.
+echo "==> Устанавливаем в дерево все фиды"
+./scripts/feeds install -a >/dev/null 2>&1 || ./scripts/feeds install -a || true
+echo "    установлено каталогов пакетов: $(ls package/feeds 2>/dev/null | wc -l)"
+
 echo "==> Включаем сборку всех пакетов"
-for sym in CONFIG_ALL CONFIG_ALL_KMODS; do
+# CONFIG_AUTOREMOVE — удалять build_dir пакета сразу после сборки. Без него
+# полный прогон съедает десятки гигабайт: каталоги сборки всех пакетов копятся
+# до конца. С ним пик потребления держится в разумных рамках.
+for sym in CONFIG_ALL CONFIG_ALL_KMODS CONFIG_AUTOREMOVE; do
 	sed -i "/^# ${sym} is not set\$/d; /^${sym}=/d" .config
 	echo "${sym}=y" >> .config
 done
