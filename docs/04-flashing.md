@@ -46,17 +46,31 @@
 
 Самый безопасный тест: ничего не пишем в NAND, грузим ядро в память.
 
+Для этого собирается отдельный образ **`TPLINK_AX50-initramfs-kernel.bin`** —
+ядро с rootfs внутри, работающее целиком в оперативной памяти.
+
 ```
 # на ПК: статический IP 192.168.1.2/24, TFTP-сервер с образом в корне
 # в консоли U-Boot:
 setenv ipaddr 192.168.1.1
 setenv serverip 192.168.1.2
-tftpboot 0x82000000 TPLINK_AX50-squashfs-fullimage.img
+tftpboot 0x82000000 TPLINK_AX50-initramfs-kernel.bin
 bootm 0x82000000
 ```
 
 Если система не поднялась — просто перезагрузите роутер, стоковая прошивка на месте.
-На этом шаге проверяются: старт ядра, консоль, Ethernet, загрузка модулей `iwlwav`.
+На этом шаге проверяются: старт ядра, консоль, Ethernet, загрузка модулей.
+Что смотреть в первую очередь:
+
+```sh
+dmesg | head -50                 # старт ядра, определилась ли плата
+cat /tmp/sysinfo/board_name      # должно быть tplink,archer-ax50-v1
+cat /proc/mtd                    # разметка NAND — сверить с docs/01-hardware.md
+cat /proc/meminfo                # реальный объём ОЗУ
+ip link                          # интерфейсы eth0_1..eth0_4, eth1
+lsmod | grep -E 'mtlk|cfg80211'  # Wi-Fi-драйвер загрузился
+dmesg | grep -i -E 'mtlk|wav|wlan'
+```
 
 ## Шаг 3. Запись в NAND
 
