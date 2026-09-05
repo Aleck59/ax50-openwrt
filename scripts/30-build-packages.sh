@@ -54,6 +54,14 @@ sel=$(grep -c '^CONFIG_PACKAGE_.*=m$' .config || true)
 echo "    пакетов выбрано как модули: $sel"
 [ "$sel" -gt 100 ] || { echo "подозрительно мало пакетов выбрано — проверьте .config" >&2; exit 1; }
 
+# Часть kmod-пакетов OpenWrt не собирается на вендорском ядре 4.9 и валит
+# весь шаг target/linux/compile (IGNORE_ERRORS=m его не покрывает). Чиним заранее.
+echo "==> Подготовка ядра к сборке всех kmod"
+"$REPO_ROOT/scripts/lib/fix-kernel-build.sh" "$TREE" || {
+	echo "не удалось подготовить сборку модулей ядра — смотрите вывод выше" >&2
+	exit 1
+}
+
 echo "==> make download"
 make -j"$JOBS" download IGNORE_ERRORS=m || true
 
