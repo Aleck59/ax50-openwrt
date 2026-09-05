@@ -95,7 +95,7 @@ jobs:
             device-tree-compiler file flex g++ g++-multilib gawk gcc-multilib \
             gettext git libelf-dev libncurses-dev libssl-dev locales make \
             patch perl python2 python3 python3-distutils python3-setuptools \
-            python3-yaml quilt rsync subversion swig time unzip wget which \
+            python3-yaml quilt rsync subversion swig time unzip wget \
             xsltproc zlib1g-dev sudo
           ln -sf /usr/bin/python2 /usr/bin/python
 
