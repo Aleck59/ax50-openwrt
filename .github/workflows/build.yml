@@ -6,10 +6,22 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      run_full_build:
-        description: "Запустить полную сборку образа (часы)"
+      build_packages:
+        description: "Дополнительно собрать ВСЕ пакеты (много часов, может не уложиться в лимиты GitHub)"
         type: boolean
         default: false
+
+# Сборка идёт внутри Ubuntu 20.04: база prplWrt — это OpenWrt 19.07, ей нужен
+# Python 2.x и GCC не новее 9.x, чего на ubuntu-latest (24.04) уже нет.
+env:
+  DEBIAN_FRONTEND: noninteractive
+  BUILD_DEPS: >-
+    bash bison build-essential bzip2 ca-certificates ccache clang
+    device-tree-compiler file flex g++ g++-multilib gawk gcc-multilib
+    gettext git libelf-dev libncurses-dev libssl-dev locales make
+    patch perl python2 python3 python3-distutils python3-setuptools
+    python3-yaml quilt rsync subversion swig time unzip wget
+    xsltproc zlib1g-dev sudo
 
 jobs:
   validate:
@@ -26,11 +38,14 @@ jobs:
           done
           python3 -c "import ast;ast.parse(open('scripts/extract-stock-firmware.sh').read())"
           echo "ok: scripts/extract-stock-firmware.sh"
+          for f in device/files/etc/board.d/* device/files/etc/uci-defaults/*; do
+            sh -n "$f" && echo "ok: $f"
+          done
 
       - name: Профиль сборки — валидный YAML и обязательные поля
         run: |
           python3 - <<'PY'
-          import yaml, sys
+          import yaml
           p = yaml.safe_load(open("device/profiles/ax50.yml"))
           for k in ("profile", "target", "subtarget", "feeds", "packages", "diffconfig"):
               assert k in p, f"нет ключа {k}"
@@ -56,11 +71,8 @@ jobs:
           PY
           fail=0
           while read -r uri branch; do
-            if [ -n "$branch" ]; then
-              out=$(git ls-remote --heads "$uri" "$branch" || true)
-            else
-              out=$(git ls-remote --heads "$uri" || true)
-            fi
+            if [ -n "$branch" ]; then out=$(git ls-remote --heads "$uri" "$branch" || true)
+            else out=$(git ls-remote --heads "$uri" || true); fi
             if [ -n "$out" ]; then echo "OK   $uri ${branch}"
             else echo "FAIL $uri ${branch}"; fail=1; fi
           done < /tmp/feeds.txt
@@ -74,29 +86,19 @@ jobs:
           fi
           exit $fail
 
-  build:
-    name: Полная сборка образа
-    if: github.event_name == 'workflow_dispatch' && inputs.run_full_build
+  image:
+    name: Образ прошивки
+    needs: validate
     runs-on: ubuntu-latest
-    # OpenWrt 19.07 требует Python 2.x и GCC не новее 9.x — на ubuntu-latest (24.04)
-    # проверка зависимостей проваливается, поэтому собираем внутри Ubuntu 20.04.
     container:
       image: ubuntu:20.04
       options: --user root
     timeout-minutes: 350
-    env:
-      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Зависимости
         run: |
           apt-get update -qq
-          apt-get install -y -qq --no-install-recommends \
-            bash bison build-essential bzip2 ca-certificates ccache clang \
-            device-tree-compiler file flex g++ g++-multilib gawk gcc-multilib \
-            gettext git libelf-dev libncurses-dev libssl-dev locales make \
-            patch perl python2 python3 python3-distutils python3-setuptools \
-            python3-yaml quilt rsync subversion swig time unzip wget \
-            xsltproc zlib1g-dev sudo
+          apt-get install -y -qq --no-install-recommends $BUILD_DEPS
           ln -sf /usr/bin/python2 /usr/bin/python
 
       - uses: actions/checkout@v4
@@ -104,19 +106,83 @@ jobs:
       - name: Освободить место
         run: |
           df -h /
-          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache || true
           df -h /
 
       - name: Сборка от непривилегированного пользователя
         run: |
           useradd -m builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
-          su builder -c "cd $GITHUB_WORKSPACE && BUILD_DIR=$GITHUB_WORKSPACE/build ./scripts/10-setup-tree.sh"
-          su builder -c "cd $GITHUB_WORKSPACE && BUILD_DIR=$GITHUB_WORKSPACE/build JOBS=$(nproc) ./scripts/20-build.sh"
+          su builder -c "cd '$GITHUB_WORKSPACE' && BUILD_DIR='$GITHUB_WORKSPACE/build' ./scripts/10-setup-tree.sh"
+          su builder -c "cd '$GITHUB_WORKSPACE' && BUILD_DIR='$GITHUB_WORKSPACE/build' JOBS=$(nproc) ./scripts/20-build.sh"
+
+      - name: Состав образа
+        if: always()
+        run: |
+          ls -la build/prplwrt/bin/targets/intel_mips/xrx500/ || true
+          cat build/prplwrt/bin/targets/intel_mips/xrx500/sha256sums || true
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ax50-images
-          path: build/prplwrt/bin/targets/intel_mips/xrx500/*
+          path: |
+            build/prplwrt/bin/targets/intel_mips/xrx500/*.bin
+            build/prplwrt/bin/targets/intel_mips/xrx500/*.img
+            build/prplwrt/bin/targets/intel_mips/xrx500/*.manifest
+            build/prplwrt/bin/targets/intel_mips/xrx500/sha256sums
+          if-no-files-found: warn
+
+      - name: Пакеты, попавшие в образ
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ax50-packages-image
+          path: build/prplwrt/bin/packages/**
+          if-no-files-found: warn
+
+  packages:
+    name: Репозиторий всех пакетов
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
+      options: --user root
+    timeout-minutes: 355
+    steps:
+      - name: Зависимости
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends $BUILD_DEPS
+          ln -sf /usr/bin/python2 /usr/bin/python
+
+      - uses: actions/checkout@v4
+
+      - name: Освободить место
+        run: |
+          df -h /
+          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache \
+                 /usr/local/share/boost /usr/share/swift || true
+          df -h /
+
+      - name: Сборка всех пакетов
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE' && BUILD_DIR='$GITHUB_WORKSPACE/build' ./scripts/10-setup-tree.sh"
+          su builder -c "cd '$GITHUB_WORKSPACE' && BUILD_DIR='$GITHUB_WORKSPACE/build' JOBS=$(nproc) ./scripts/20-build.sh"
+          su builder -c "cd '$GITHUB_WORKSPACE' && BUILD_DIR='$GITHUB_WORKSPACE/build' JOBS=$(nproc) ./scripts/30-build-packages.sh"
+
+      - name: Что собралось
+        if: always()
+        run: |
+          find build/prplwrt/bin/packages -name '*.ipk' | wc -l
+          du -sh build/prplwrt/bin/packages || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ax50-opkg-repo
+          path: build/prplwrt/bin/packages/**
           if-no-files-found: warn

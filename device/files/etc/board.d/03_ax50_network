@@ -1,22 +1,32 @@
 #!/bin/sh
 #
-# Настройка портов для TP-Link Archer AX50 v1.
+# Настройка портов и MAC-адресов для TP-Link Archer AX50 v1.
 #
 # Штатный /etc/board.d/02_network из таргета intel_mips разбирает только имена
-# плат EASY350*/EASY550*, а наша плата представляется как tplink,archer-ax50-v1,
+# плат EASY350*/EASY550*, а наша плата представляется как tplink,archer-ax50-v1
 # и потому попадает в ветку по умолчанию, где LAN — это просто eth0, а WAN нет
 # вовсе. Этот скрипт выполняется после 02_network и переопределяет интерфейсы.
 #
-# Раскладка взята из ветки EASY350* штатного 02_network: AX50 построен на той же
-# референс-плате (стоковый DTB объявляет "EASY350 ANYWAN (GRX350) Router model").
+# Раскладка портов взята из ветки EASY350* штатного 02_network: AX50 построен на
+# той же референс-плате (стоковый DTB объявляет "EASY350 ANYWAN (GRX350) Router model").
 #
-# ТРЕБУЕТ ПРОВЕРКИ НА ЖЕЛЕЗЕ:
-#  * соответствие eth0_1..eth0_4 физическим разъёмам LAN 1-4;
-#  * источник MAC-адресов. Здесь взят тот же, что у референс-платы —
-#    переменная ethaddr в разделе ubootconfigA. У AX50 заводские MAC могут
-#    лежать в разделе calibration; сверьте с наклейкой на корпусе и при
-#    расхождении поправьте функцию ниже.
+# --- Откуда берутся MAC-адреса ---
 #
+# Разобрано по GPL-коду и стоковой прошивке AX50 (см. docs/07-mac.md):
+# сток вычисляет все адреса из одного базового, /sbin/network_get_firm:
+#
+#     LAN            = base
+#     WAN            = base + 1
+#     Wi-Fi 2.4 ГГц  = base - 1
+#     Wi-Fi 5 ГГц    = base - 2
+#
+# Базовый адрес сток получает как `getfirm MAC`, то есть
+# `nvrammanager -r <file> -p default-mac`, и дальше берёт из файла строку
+# вида "MAC:XX-XX-XX-XX-XX-XX". nvrammanager — проприетарный (в GPL он помечен
+# как Iplatform/packages/private/nvrammanager и вырезан), поэтому здесь мы ищем
+# ту же строку сами, перебирая источники по порядку.
+#
+. /lib/functions.sh
 . /lib/functions/uci-defaults.sh
 . /lib/functions/system.sh
 . /lib/functions/lantiq.sh
@@ -24,23 +34,55 @@
 board=$(lantiq_board_name)
 
 case "$board" in
-tplink,archer-ax50-v1|tplink_archer-ax50-v1)
-	;;
-*)
-	exit 0
-	;;
+tplink,archer-ax50-v1|tplink_archer-ax50-v1) ;;
+*) exit 0 ;;
 esac
 
-board_config_update
+# Ищем в разделе строку "MAC:XX-XX-XX-XX-XX-XX", как её пишет nvrammanager
+ax50_scan_mac() {
+	local part dev mac
+	part="$1"
+	dev="$(find_mtd_part "$part")"
+	[ -n "$dev" ] && [ -r "$dev" ] || return 1
 
-lan_mac=$(mtd_get_mac_ascii ubootconfigA ethaddr 2>/dev/null)
+	mac="$(tr -c '[:print:]' '\n' < "$dev" 2>/dev/null \
+		| grep -m1 -o 'MAC:[0-9A-Fa-f][0-9A-Fa-f-]\{16\}' \
+		| cut -d: -f2 | tr 'A-F-' 'a-f:')"
+
+	[ -n "$mac" ] || return 1
+	echo "$mac"
+}
+
+ax50_base_mac() {
+	local mac
+
+	# 1) окружение U-Boot — так же делает штатный 02_network для EASY350
+	mac="$(mtd_get_mac_ascii ubootconfigA ethaddr 2>/dev/null)"
+	[ -n "$mac" ] && { echo "$mac"; logger -t ax50 "base MAC из ubootconfigA/ethaddr: $mac"; return 0; }
+
+	# 2) программный раздел default-mac от TP-Link. В какой именно MTD-раздел
+	#    он попадает на AX50, по открытым исходникам определить нельзя, поэтому
+	#    перебираем кандидатов: res (3.25 МиБ, резерв) и calibration (1 МиБ).
+	for part in res calibration; do
+		mac="$(ax50_scan_mac "$part")" && {
+			echo "$mac"
+			logger -t ax50 "base MAC найден в разделе $part: $mac"
+			return 0
+		}
+	done
+
+	logger -t ax50 "base MAC не найден — интерфейсы получат адреса от драйвера"
+	return 1
+}
+
+board_config_update
 
 ucidef_set_interface_lan 'eth0_1 eth0_2 eth0_3 eth0_4'
 ucidef_set_interface_wan 'eth1'
 
-if [ -n "$lan_mac" ]; then
-	ucidef_set_interface_macaddr "lan" "$lan_mac"
-	ucidef_set_interface_macaddr "wan" "$(macaddr_add "$lan_mac" 1)"
+if base_mac="$(ax50_base_mac)"; then
+	ucidef_set_interface_macaddr "lan" "$base_mac"
+	ucidef_set_interface_macaddr "wan" "$(macaddr_add "$base_mac" 1)"
 fi
 
 board_config_flush
