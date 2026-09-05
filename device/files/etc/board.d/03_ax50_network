@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# Настройка портов для TP-Link Archer AX50 v1.
+#
+# Штатный /etc/board.d/02_network из таргета intel_mips разбирает только имена
+# плат EASY350*/EASY550*, а наша плата представляется как tplink,archer-ax50-v1,
+# и потому попадает в ветку по умолчанию, где LAN — это просто eth0, а WAN нет
+# вовсе. Этот скрипт выполняется после 02_network и переопределяет интерфейсы.
+#
+# Раскладка взята из ветки EASY350* штатного 02_network: AX50 построен на той же
+# референс-плате (стоковый DTB объявляет "EASY350 ANYWAN (GRX350) Router model").
+#
+# ТРЕБУЕТ ПРОВЕРКИ НА ЖЕЛЕЗЕ:
+#  * соответствие eth0_1..eth0_4 физическим разъёмам LAN 1-4;
+#  * источник MAC-адресов. Здесь взят тот же, что у референс-платы —
+#    переменная ethaddr в разделе ubootconfigA. У AX50 заводские MAC могут
+#    лежать в разделе calibration; сверьте с наклейкой на корпусе и при
+#    расхождении поправьте функцию ниже.
+#
+. /lib/functions/uci-defaults.sh
+. /lib/functions/system.sh
+. /lib/functions/lantiq.sh
+
+board=$(lantiq_board_name)
+
+case "$board" in
+tplink,archer-ax50-v1|tplink_archer-ax50-v1)
+	;;
+*)
+	exit 0
+	;;
+esac
+
+board_config_update
+
+lan_mac=$(mtd_get_mac_ascii ubootconfigA ethaddr 2>/dev/null)
+
+ucidef_set_interface_lan 'eth0_1 eth0_2 eth0_3 eth0_4'
+ucidef_set_interface_wan 'eth1'
+
+if [ -n "$lan_mac" ]; then
+	ucidef_set_interface_macaddr "lan" "$lan_mac"
+	ucidef_set_interface_macaddr "wan" "$(macaddr_add "$lan_mac" 1)"
+fi
+
+board_config_flush
+
+exit 0

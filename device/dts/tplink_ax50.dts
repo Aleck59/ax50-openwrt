@@ -23,6 +23,17 @@
 	compatible = "tplink,archer-ax50-v1", "intel,easy350_anywan",
 		     "lantiq,grx500", "lantiq,xrx500";
 
+	/*
+	 * base-files таргета (etc/board.d/01_leds) ищет светодиоды через
+	 * алиасы led-<роль> и функцию lantiq_get_dt_led, поэтому без этих
+	 * алиасов автонастройка триггеров не сработает.
+	 */
+	aliases {
+		led-wifi = &led_wlan2g;
+		led-usb = &led_usb;
+		led-internet = &led_wan_blue;
+	};
+
 	gpio-keys-polled {
 		compatible = "gpio-keys-polled";
 		#address-cells = <1>;
@@ -51,38 +62,38 @@
 	gpio-leds {
 		compatible = "gpio-leds";
 
-		power {
+		led_power: power {
 			label = "ax50:blue:power";
 			gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 		};
 
-		wlan2g {
+		led_wlan2g: wlan2g {
 			label = "ax50:blue:wlan2g";
 			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
 		};
 
-		wlan5g {
+		led_wlan5g: wlan5g {
 			label = "ax50:blue:wlan5g";
 			gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
 		};
 
-		lan {
+		led_lan: lan {
 			label = "ax50:blue:lan";
 			gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
 		};
 
-		wan_blue {
+		led_wan_blue: wan_blue {
 			label = "ax50:blue:wan";
 			gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
 		};
 
-		wan_orange {
+		led_wan_orange: wan_orange {
 			label = "ax50:orange:wan";
 			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
 		};
 
-		usb {
+		led_usb: usb {
 			label = "ax50:blue:usb";
 			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
 		};
