@@ -33,7 +33,12 @@ TREE="${1:?использование: fix-kernel-build.sh <путь к дере
 MAX="${2:-120}"
 
 cd "$TREE"
-KCFG="feeds/feed_target_mips/intel_mips/config-4.9"
+# конфиг таргета лежит по-разному: в дереве 19.07 таргет установлен как фид,
+# в дереве 22.03 он скопирован прямо в target/linux
+for c in feeds/feed_target_mips/intel_mips/config-4.9 target/linux/intel_mips/config-4.9; do
+	[ -f "$c" ] && KCFG="$c" && break
+done
+KCFG="${KCFG:-feeds/feed_target_mips/intel_mips/config-4.9}"
 LOG="$(mktemp)"
 DISABLED="$TREE/.packages-disabled"
 trap 'rm -f "$LOG"' EXIT
