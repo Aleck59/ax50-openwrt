@@ -1,0 +1,7 @@
+#!/bin/sh
+# Системные настройки по умолчанию (только при первой загрузке).
+[ "$(uci -q get system.@system[0].hostname)" = "OpenWrt" ] && {
+	uci -q set system.@system[0].hostname='ArcherAX50'
+	uci -q commit system
+}
+exit 0

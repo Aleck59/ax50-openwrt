@@ -1,0 +1,227 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * TP-Link Archer AX50 v1
+ *
+ *   SoC:    Intel/MaxLinear GRX350 (xRX500), MIPS interAptiv, big-endian
+ *   RAM:    256 MiB DDR3
+ *   Flash:  128 MiB NAND (2 KiB page, 128 KiB block)
+ *   Wi-Fi:  MaxLinear WAV654 (2x2 2.4 GHz + 2x2 5 GHz, 802.11ax), PCIe
+ *   Ports:  4x LAN + 1x WAN 1 Gbit/s (internal GPHY), 1x USB 3.0
+ *
+ * Плата — производная от референсной EASY350 ANYWAN AxePoint (стоковый DTB
+ * так и называется), поэтому базой взят easy350_anywan_axepoint_rt.dts.
+ * Все отличия ниже сверены с DTB из прошивки TP-Link 1.1.2 Build 20251022
+ * и с конфигурацией U-Boot из GPL-архива ax50v1_GPL_3 (см. docs/hardware.md).
+ */
+
+#include "easy350_anywan_axepoint_rt.dts"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "TP-Link Archer AX50 v1";
+	compatible = "tplink,archer-ax50-v1", "intel,easy350_anywan",
+		     "lantiq,grx500", "lantiq,xrx500";
+
+	/* 256 MiB по адресу 0x20000000 (U-Boot передаёт mem=256M@512M) */
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x10000000>;
+	};
+
+	/*
+	 * Светодиод состояния для /etc/diag.sh (мигает при загрузке и в failsafe).
+	 * Алиасы led-usb/led-internet намеренно не заданы: штатный 01_leds
+	 * таргета привязал бы «интернет» к DSL-интерфейсу nas0. Триггеры
+	 * светодиодов AX50 настраивает /etc/board.d/03_ax50 (ax50-base-files).
+	 */
+	aliases {
+		led-boot = &led_power;
+		led-failsafe = &led_power;
+		led-running = &led_power;
+		led-upgrade = &led_power;
+	};
+
+	keys {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <100>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+
+		rfkill {
+			label = "wifi";
+			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RFKILL>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_power: power {
+			label = "blue:power";
+			gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		wlan2g {
+			label = "blue:wlan2g";
+			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+		};
+
+		wlan5g {
+			label = "blue:wlan5g";
+			gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+		};
+
+		lan {
+			label = "blue:lan";
+			gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+		};
+
+		wan {
+			label = "blue:wan";
+			gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		};
+
+		wan_fail {
+			label = "orange:wan";
+			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		};
+
+		usb {
+			label = "blue:usb";
+			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+/*
+ * Разметка NAND 128 MiB — ровно как mtdparts стокового U-Boot:
+ *   1m(uboot),256k(ubootconfigA),256k(ubootconfigB),256k(gphyfirmware),
+ *   1m(calibration),124m(system_sw),-(res)
+ * У референс-платы вместо начала system_sw лежит раздел Bootcore (16 MiB),
+ * которого у AX50 нет.
+ *
+ * uboot, ubootconfigA/B, gphyfirmware и calibration помечены read-only:
+ * в calibration — калибровка радио, она уникальна для каждого экземпляра.
+ */
+&{/ssx4@16000000/localbus@0/nand-parts@0} {
+	/delete-node/ partition@0;
+	/delete-node/ partition@100000;
+	/delete-node/ partition@140000;
+	/delete-node/ partition@180000;
+	/delete-node/ partition@1c0000;
+	/delete-node/ partition@2c0000;
+	/delete-node/ partition@12c0000;
+	/delete-node/ partition@7Ec0000;
+
+	partition@0 {
+		label = "uboot";
+		reg = <0x0000000 0x0100000>;
+		read-only;
+	};
+
+	partition@100000 {
+		label = "ubootconfigA";
+		reg = <0x0100000 0x0040000>;
+	};
+
+	partition@140000 {
+		label = "ubootconfigB";
+		reg = <0x0140000 0x0040000>;
+	};
+
+	partition@180000 {
+		label = "gphyfirmware";
+		reg = <0x0180000 0x0040000>;
+		read-only;
+	};
+
+	partition@1c0000 {
+		label = "calibration";
+		reg = <0x01c0000 0x0100000>;
+		read-only;
+	};
+
+	partition@2c0000 {
+		label = "system_sw";
+		reg = <0x02c0000 0x7c00000>;
+	};
+
+	partition@7ec0000 {
+		label = "res";
+		reg = <0x7ec0000 0x0140000>;
+		read-only;
+	};
+};
+
+/*
+ * Светодиоды AX50 висят на обычных GPIO. SSO-контроллер референс-платы через
+ * pinctrl_ledc забирает пины 4/5/6, а на gpio0 4 и gpio0 6 у AX50 светодиоды
+ * Wi-Fi 5 ГГц и «интернет». В стоковом DTB у SSO нет ни одного потребителя.
+ */
+&ssogpio {
+	status = "disabled";
+};
+
+&ssoled {
+	status = "disabled";
+};
+
+/*
+ * Питание USB. У референс-платы VBUS идёт через SSO, у AX50 — прямые GPIO
+ * (сток: vbus-gpio = gpio0 14 / gpio0 2, на тех же площадках детектор
+ * перегрузки). Регуляторы референс-платы переопределяются на эти пины.
+ */
+&usb0_vbus {
+	gpio = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+	/delete-property/ enable-active-low;
+	enable-active-high;
+	regulator-boot-on;
+};
+
+&usb1_vbus {
+	gpio = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+	enable-active-high;
+	regulator-boot-on;
+};
+
+&pinctrl_usb0_default {
+	intel,pins = <14>;
+};
+
+&pinctrl_usb0_idle {
+	intel,pins = <14>;
+};
+
+&pinctrl_usb1_default {
+	intel,pins = <2>;
+};
+
+&pinctrl_usb1_idle {
+	intel,pins = <2>;
+};
+
+/*
+ * PCIe. Сброс pcie0/pcie1 совпадает со стоком (gpio1 11 / gpio1 29).
+ * У pcie2 референс-плата дёргает gpio0 7 — на AX50 это светодиод WAN,
+ * а сток указывает там gpio0 14, то есть питание USB. Линию сброса
+ * у pcie2 убираем, чтобы контроллер не трогал чужие пины.
+ */
+&pcie2 {
+	/delete-property/ reset-gpios;
+};

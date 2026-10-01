@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Резервная копия заводских данных TP-Link Archer AX50 v1.
+#
+#   ax50-backup [каталог]       (по умолчанию /tmp)
+#
+# В архив попадают разделы uboot, ubootconfigA/B, gphyfirmware, calibration,
+# res и содержимое UBI-тома data_vol (если он есть). Калибровка радио
+# уникальна для каждого роутера — храните архив вне роутера:
+#
+#   scp root@192.168.1.1:/tmp/ax50-backup-*.tar.gz .
+#
+set -e
+. /lib/functions.sh
+
+out_dir="${1:-/tmp}"
+stamp="$(date +%Y%m%d-%H%M%S)"
+work="$(mktemp -d /tmp/ax50-backup.XXXXXX)"
+trap 'umount "$work/data_vol" 2>/dev/null; rm -rf "$work"' EXIT
+
+cat /proc/mtd > "$work/proc_mtd.txt"
+
+for part in uboot ubootconfigA ubootconfigB gphyfirmware calibration res; do
+	dev="$(find_mtd_part "$part")"
+	[ -n "$dev" ] || { echo "нет раздела $part" >&2; continue; }
+	# символьное устройство /dev/mtdN: nanddump корректно пропускает плохие блоки
+	nanddump -q -f "$work/$part.bin" "/dev/mtd${dev##*mtdblock}" \
+		|| cat "$dev" > "$work/$part.bin"
+	echo "  $part: $(wc -c < "$work/$part.bin") байт"
+done
+
+for vol in /sys/class/ubi/ubi*_*; do
+	[ "$(cat "$vol/name" 2>/dev/null)" = "data_vol" ] || continue
+	ubi="${vol##*/}"
+	mkdir -p "$work/data_vol"
+	if mount -t ubifs -o ro "${ubi%_*}:data_vol" "$work/data_vol"; then
+		tar -czf "$work/data_vol.tar.gz" -C "$work/data_vol" .
+		umount "$work/data_vol"
+		echo "  data_vol: сохранён"
+	fi
+	rmdir "$work/data_vol"
+done
+
+( cd "$work" && md5sum ./*.bin > md5sums.txt )
+
+archive="$out_dir/ax50-backup-$stamp.tar.gz"
+tar -czf "$archive" -C "$work" .
+echo "Готово: $archive"
+echo "Скопируйте его на компьютер: scp root@$(uci -q get network.lan.ipaddr || echo 192.168.1.1):$archive ."

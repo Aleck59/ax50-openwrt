@@ -1,0 +1,10 @@
+--- a/intel_mips/image/Makefile
++++ b/intel_mips/image/Makefile
+@@ -116,6 +116,7 @@
+ include xrx500.mk
+ include axp.mk
+ -include rax40.mk
++include tplink_ax50.mk
+ include svip_be.mk
+ include svip_le.mk
+ 

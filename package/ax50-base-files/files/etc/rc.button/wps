@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Кнопка WPS: короткое нажатие запускает WPS PBC на всех точках доступа.
+# hostapd от MaxLinear не регистрируется в ubus, поэтому — через hostapd_cli.
+
+[ "$ACTION" = "released" ] || exit 0
+[ "$SEEN" -lt 3 ] 2>/dev/null || exit 0
+
+for sock in /var/run/hostapd/wlan* /var/run/hostapd-*/wlan*; do
+	[ -S "$sock" ] || continue
+	hostapd_cli -p "${sock%/*}" -i "${sock##*/}" wps_pbc >/dev/null 2>&1 \
+		&& logger -t ax50 "WPS PBC: ${sock##*/}"
+done
+
+return 0

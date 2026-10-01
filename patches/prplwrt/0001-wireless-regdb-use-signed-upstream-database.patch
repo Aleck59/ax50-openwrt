@@ -1,0 +1,37 @@
+--- a/package/firmware/wireless-regdb/Makefile
++++ b/package/firmware/wireless-regdb/Makefile
+@@ -1,12 +1,12 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=wireless-regdb
+-PKG_VERSION:=2019.06.03
++PKG_VERSION:=2026.09.03
+ PKG_RELEASE:=1
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
+ PKG_SOURCE_URL:=@KERNEL/software/network/wireless-regdb/
+-PKG_HASH:=cd917ed86b63ce8d93947979f1f18948f03a4ac0ad89ec25227b36ac00dc54bf
++PKG_HASH:=b22e0901227b820cd1c280abe681a15b773a5103a5e10dc442e94ebb34cbf58d
+ 
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ 
+@@ -20,13 +20,17 @@
+   TITLE:=Wireless Regulatory Database
+ endef
+ 
++# ax50-openwrt: cfg80211 из бэкпорта iwlwav собран с
++# CFG80211_REQUIRE_SIGNED_REGDB=y, поэтому нужна официальная база,
++# подписанная ключом sforshee, вместе с regulatory.db.p7s. Пересобранная
++# из db.txt (как в OpenWrt) подпись не проходит, и драйвер остаётся в
++# «мировом» домене.
+ define Build/Compile
+-	$(STAGING_DIR_HOST)/bin/$(PYTHON) $(PKG_BUILD_DIR)/db2fw.py $(PKG_BUILD_DIR)/regulatory.db $(PKG_BUILD_DIR)/db.txt
+ endef
+ 
+ define Package/wireless-regdb/install
+ 	$(INSTALL_DIR) $(1)/lib/firmware
+-	$(CP) $(PKG_BUILD_DIR)/regulatory.db $(1)/lib/firmware/
++	$(CP) $(PKG_BUILD_DIR)/regulatory.db $(PKG_BUILD_DIR)/regulatory.db.p7s $(1)/lib/firmware/
+ endef
+ 
+ $(eval $(call BuildPackage,wireless-regdb))

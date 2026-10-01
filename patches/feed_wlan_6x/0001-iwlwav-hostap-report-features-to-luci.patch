@@ -1,0 +1,79 @@
+diff -uNr a/wlan_wave_feed/iwlwav-hostap-uci/patches/100-hostapd-feature-query.patch b/wlan_wave_feed/iwlwav-hostap-uci/patches/100-hostapd-feature-query.patch
+--- a/wlan_wave_feed/iwlwav-hostap-uci/patches/100-hostapd-feature-query.patch
++++ b/wlan_wave_feed/iwlwav-hostap-uci/patches/100-hostapd-feature-query.patch
+@@ -0,0 +1,75 @@
++--- a/hostapd/main.c
+++++ b/hostapd/main.c
++@@ -456,6 +456,54 @@
++ }
++ 
++ 
+++/*
+++ * OpenWrt/LuCI узнаёт возможности hostapd вызовом `hostapd -v<функция>`
+++ * (код выхода 0 — поддерживается). Без этого LuCI не предлагает WPA3/OWE.
+++ */
+++static int hostapd_has_feature(const char *feat)
+++{
+++	static const char * const features[] = {
+++#ifdef EAP_SERVER
+++		"eap",
+++#endif
+++#ifdef CONFIG_IEEE80211N
+++		"11n",
+++#endif
+++#ifdef CONFIG_IEEE80211AC
+++		"11ac",
+++#endif
+++#ifdef CONFIG_IEEE80211AX
+++		"11ax",
+++#endif
+++#ifdef CONFIG_IEEE80211R
+++		"11r",
+++#endif
+++#ifdef CONFIG_IEEE80211W
+++		"11w",
+++#endif
+++#ifdef CONFIG_ACS
+++		"acs",
+++#endif
+++#ifdef CONFIG_SAE
+++		"sae",
+++#endif
+++#ifdef CONFIG_OWE
+++		"owe",
+++#endif
+++#ifdef CONFIG_SUITEB192
+++		"suiteb192",
+++#endif
+++		NULL
+++	};
+++	int i;
+++
+++	for (i = 0; features[i]; i++)
+++		if (os_strcmp(feat, features[i]) == 0)
+++			return 1;
+++	return 0;
+++}
+++
+++
++ static void show_version(void)
++ {
++ 	fprintf(stderr,
++@@ -712,7 +760,7 @@
++ #endif /* CONFIG_DPP */
++ 
++ 	for (;;) {
++-		c = getopt(argc, argv, "b:Bde:f:hi:KP:sSTtu:vg:G:");
+++		c = getopt(argc, argv, "b:Bde:f:hi:KP:sSTtu:v::g:G:");
++ 		if (c < 0)
++ 			break;
++ 		switch (c) {
++@@ -749,6 +797,8 @@
++ 			break;
++ #endif /* CONFIG_DEBUG_LINUX_TRACING */
++ 		case 'v':
+++			if (optarg)
+++				exit(!hostapd_has_feature(optarg));
++ 			show_version();
++ 			exit(1);
++ 			break;

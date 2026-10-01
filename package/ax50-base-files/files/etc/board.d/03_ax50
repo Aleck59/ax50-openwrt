@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# TP-Link Archer AX50 v1: порты, MAC-адреса и светодиоды.
+#
+# Выполняется после 02_network таргета: тот знает только платы EASY350*/EASY550*
+# и для AX50 сделал бы LAN = eth0 без WAN.
+#
+# Порты (lib/network/network_arch.sh стока):
+#   LAN1 -> eth0_4, LAN2 -> eth0_3, LAN3 -> eth0_2, LAN4 -> eth0_1, WAN -> eth1
+#
+. /lib/functions/uci-defaults.sh
+. /lib/functions/lantiq.sh
+. /lib/functions/ax50.sh
+
+case "$(lantiq_board_name)" in
+"TP-Link Archer AX50"*) ;;
+*) exit 0 ;;
+esac
+
+board_config_update
+
+ucidef_set_interfaces_lan_wan "eth0_1 eth0_2 eth0_3 eth0_4" "eth1"
+
+if base_mac="$(ax50_base_mac)"; then
+	ucidef_set_interface_macaddr "lan" "$base_mac"
+	ucidef_set_interface_macaddr "wan" "$(ax50_mac_offset "$base_mac" 1)"
+fi
+
+# Светодиоды. WAN (синий/оранжевый) ведёт /etc/hotplug.d/iface/30-ax50-wanled.
+ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan" "link tx rx"
+ucidef_set_led_netdev "wlan2g" "Wi-Fi 2.4 GHz" "blue:wlan2g" "wlan0.0" "link tx rx"
+ucidef_set_led_netdev "wlan5g" "Wi-Fi 5 GHz" "blue:wlan5g" "wlan2.0" "link tx rx"
+ucidef_set_led_usbport "usb" "USB" "blue:usb" usb1-port1 usb2-port1 usb3-port1 usb4-port1
+
+board_config_flush
+
+exit 0

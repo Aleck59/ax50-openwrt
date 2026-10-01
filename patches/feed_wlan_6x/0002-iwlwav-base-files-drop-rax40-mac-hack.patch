@@ -1,0 +1,28 @@
+--- a/iwlwav-base-files/files/etc/init.d/intel_wifi_init
++++ b/iwlwav-base-files/files/etc/init.d/intel_wifi_init
+@@ -42,21 +42,10 @@
+         /usr/local/sbin/wireless_def_config
+     fi
+ 
+-    #### HACK HACK HACK ####
+-    WAN_MAC=`uci get network.wan_dev.macaddr`
+-    if [ -z "$WAN_MAC" ]; then
+-        WAN_MAC="00:00:00:AD:EA:D1"
+-    fi
+-
+-	WLAN2G_MAC=`macaddr_add $WAN_MAC 1`
+-    WLAN5G_MAC=`macaddr_add $WAN_MAC 2`
+-
+-    uci set wireless.i2g.macaddr=$WLAN2G_MAC
+-    uci set wireless.i5g.macaddr=$WLAN5G_MAC
+-    uci commit wireless
+-
+-    ifconfig wlan0 hw ether $WLAN2G_MAC
+-    ifconfig wlan2 hw ether $WLAN5G_MAC
++    # ax50-openwrt: здесь был «хак» prplWrt для RAX40 — он брал MAC из
++    # несуществующего network.wan_dev и при каждой загрузке назначал wlan0
++    # адрес 00:00:00:AD:EA:D2. MAC-адреса Wi-Fi задаются в /etc/config/wireless
++    # (см. /etc/uci-defaults/10_ax50-wireless из пакета ax50-base-files).
+ }
+ 
+ stop() {
