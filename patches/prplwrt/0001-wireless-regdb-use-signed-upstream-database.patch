@@ -15,14 +15,15 @@
  
  PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
  
-@@ -20,13 +20,17 @@
+@@ -20,13 +20,18 @@
    TITLE:=Wireless Regulatory Database
  endef
  
 +# ax50-openwrt: cfg80211 из бэкпорта iwlwav собран с
 +# CFG80211_REQUIRE_SIGNED_REGDB=y, поэтому нужна официальная база,
-+# подписанная ключом sforshee, вместе с regulatory.db.p7s. Пересобранная
-+# из db.txt (как в OpenWrt) подпись не проходит, и драйвер остаётся в
++# подписанная ключом wens (его добавляет патч feed_wlan_6x/0003), вместе
++# с regulatory.db.p7s. Пересобранная из db.txt (как в OpenWrt) база
++# подпись не проходит, и драйвер остаётся в
 +# «мировом» домене.
  define Build/Compile
 -	$(STAGING_DIR_HOST)/bin/$(PYTHON) $(PKG_BUILD_DIR)/db2fw.py $(PKG_BUILD_DIR)/regulatory.db $(PKG_BUILD_DIR)/db.txt

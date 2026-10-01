@@ -19,8 +19,11 @@ Wi-Fi выключен до первой настройки (как принят
   `wpa_key_mgmt=SAE` / `WPA-PSK SAE` и включают PMF;
 - LuCI узнаёт возможности hostapd вызовом `hostapd -vsae` — эту функцию в hostapd
   MaxLinear добавляет патч `patches/feed_wlan_6x/0001-...` (иначе LuCI скрывает WPA3);
-- база регуляторики — официальная подписанная `regulatory.db` + `regulatory.db.p7s`
-  (cfg80211 драйвера требует подпись), страна по умолчанию — RU.
+- база регуляторики — актуальная официальная `regulatory.db` + `regulatory.db.p7s`
+  (пакет `wireless-regdb`). cfg80211 драйвера требует подпись и знал только старые
+  ключи (sforshee, iwlwav), поэтому патч `patches/feed_wlan_6x/0003-...` добавляет
+  ключ нынешнего сопровождающего (wens), а устаревшую базу из пакета WAVE убирает.
+  Страна по умолчанию — RU.
 
 ## AdGuard Home
 
