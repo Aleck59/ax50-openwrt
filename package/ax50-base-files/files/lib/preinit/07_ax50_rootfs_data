@@ -11,7 +11,15 @@ ax50_create_rootfs_data() {
 	esac
 	ubinfo /dev/ubi0 --name=rootfs_data >/dev/null 2>&1 && return 0
 	echo "- ax50: создание тома rootfs_data -"
-	ubimkvol /dev/ubi0 -N rootfs_data -m
+	ubimkvol /dev/ubi0 -N rootfs_data -m || return 0
+	# Узел устройства в preinit сам не появляется — без него mount_root не
+	# откроет том (UBIFS: cannot open /dev/ubi0_N) и уйдёт в overlay в ОЗУ
+	local vol dev
+	for vol in /sys/class/ubi/ubi0_*; do
+		[ "$(cat "$vol/name" 2>/dev/null)" = rootfs_data ] || continue
+		dev="$(cat "$vol/dev")"
+		[ -e "/dev/${vol##*/}" ] || mknod "/dev/${vol##*/}" c "${dev%:*}" "${dev#*:}"
+	done
 }
 
 [ "$INITRAMFS" = "1" ] || boot_hook_add preinit_main ax50_create_rootfs_data

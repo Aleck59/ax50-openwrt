@@ -1,0 +1,111 @@
+WAV654 AX50: не перезагружать mtlk без dual_pci, двухдиапазонный PSD для rev 0x46
+
+1. intel_wifi_init (prplWrt, RAX40) выгружал mtlk и загружал заново без
+   dual_pci: второй PCIe-канал WAV654 (5 ГГц) не поднимался
+   («Don't start PCI AUX device due to non DUAL PCI mode»).
+2. В PSD.bin Intel первый блок chip 0x0900 / hw_type 0x61 / hw_rev 0x46 —
+   однодиапазонная плата 2.4 ГГц, и драйвер создавал одно радио. Стоковый
+   PSD.bin TP-Link начинается со своего двухдиапазонного блока 0x46, по
+   таблицам равного эталонному rev 0x45; ax50-psd-dualband.py делает то же
+   при установке пакета.
+
+--- a/iwlwav-base-files/files/etc/init.d/intel_wifi_init
++++ b/iwlwav-base-files/files/etc/init.d/intel_wifi_init
+@@ -30,12 +30,12 @@
+         fi
+     done
+ 
+-    insmod mtlkroot.ko
+-
+-    # FIXME - stop mtlk from loading during module init
+-    #         or setup cal data before module init happens
+-    rmmod mtlk
+-    insmod mtlk.ko ap=1,1 fastpath=1,1 ahb_off=1
++    # ax50-openwrt: драйвер уже загружен kmodloader-ом из /etc/modules.d с
++    # dual_pci (калибровку preinit к этому моменту распаковал). prplWrt здесь
++    # выгружал и загружал mtlk заново без dual_pci — WAV654 переходил в
++    # однодиапазонный режим и радио 5 ГГц (второй PCIe) пропадало.
++    grep -q '^mtlk ' /proc/modules || \
++        insmod mtlk fastpath=1,1 ahb_off=1 loggersid=255,255 dual_pci=1,1
+ 
+     if [ !  -f "/etc/config/wireless" ]; then
+         /sbin/wifi config
+--- a/wlan_wave_feed/lq-wave-300_6x-uci/Makefile
++++ b/wlan_wave_feed/lq-wave-300_6x-uci/Makefile
+@@ -110,6 +110,9 @@
+ 	$(CP) $(GENRISC_BIN_FOLDER)/* $(1)/lib/firmware/
+ 	$(CP) $(PROGMODEL_BIN_FOLDER)/* $(1)/lib/firmware/
+ 	$(CP) $(PSD_BIN_FOLDER)/* $(1)/lib/firmware/
++	# ax50-openwrt: двухдиапазонный блок для hw_rev 0x46 (TP-Link Archer AX50)
++	python3 ./files/ax50-psd-dualband.py $(1)/$(BINS_FOLDER)/PSD.bin
++	python3 ./files/ax50-psd-dualband.py $(1)/lib/firmware/PSD.bin
+ 	# ax50-openwrt: regulatory.db(.p7s) ставит wireless-regdb (актуальная база)
+ 	$(CP) $(REGULATORY_BIN_FOLDER)/regulatory.bin $(1)/lib/firmware/
+ 	$(CP) ./files/binaries/sbin/* $(1)/$(SBIN_FOLDER)/
+--- /dev/null
++++ b/wlan_wave_feed/lq-wave-300_6x-uci/files/ax50-psd-dualband.py
+@@ -0,0 +1,64 @@
++#!/usr/bin/env python3
++"""
++PSD.bin (база параметров плат WAVE600) для TP-Link Archer AX50.
++
++Драйвер iwlwav берёт первый блок платформы с chip_id/hw_type/hw_rev из
++калибровки. У AX50 это 0x0900/0x61/0x46, и в эталонном PSD.bin Intel первый
++такой блок — однодиапазонная плата 2.4 ГГц (Band_Support_5G=0): радио 5 ГГц не
++создаётся. В стоковом PSD.bin TP-Link первым идёт свой двухдиапазонный блок
++0x46, по таблицам совпадающий с эталонным блоком rev 0x45. Скрипт делает то же:
++содержимое первого блока rev 0x46 заменяется блоком rev 0x45 того же чипа
++(hw_rev остаётся 0x46). Таблицы адресуются смещениями от начала файла, размер
++блоков одинаковый — остальная часть файла не меняется.
++
++    ax50-psd-dualband.py PSD.bin
++"""
++import struct
++import sys
++
++PLATFORM, TABLES = 0xAAAA5555, 0x66669999
++F_CHIP, F_BAND5, F_HWTYPE, F_HWREV = 0x01, 0x05, 0x0B, 0x0C
++
++
++def blocks(w):
++    i = 0
++    while i < len(w):
++        if w[i] == TABLES:
++            return
++        if w[i] == PLATFORM:
++            nrows, ncols = w[i + 1], w[i + 2]
++            f = {w[i + 3 + 2 * k]: (i + 4 + 2 * k) for k in range(nrows)}
++            yield i, nrows, ncols, f
++            i += 3 + nrows * ncols
++            continue
++        i += 1
++
++
++def main(path):
++    data = bytearray(open(path, 'rb').read())
++    w = list(struct.unpack('<%dI' % (len(data) // 4), data))
++    changed = 0
++    for chip in (0x0900, 0x0910):
++        sel = [b for b in blocks(w)
++               if w[b[3][F_CHIP]] == chip and w[b[3][F_HWTYPE]] == 0x61]
++        src = next((b for b in sel if w[b[3][F_HWREV]] == 0x45), None)
++        dst = next((b for b in sel if w[b[3][F_HWREV]] == 0x46), None)
++        if not src or not dst:
++            continue
++        if w[dst[3][F_BAND5]] == 1:
++            continue  # уже двухдиапазонный
++        if src[1:3] != dst[1:3] or set(src[3]) != set(dst[3]):
++            sys.exit('%s: блоки 0x45/0x46 чипа %#x разной структуры' % (path, chip))
++        n = 3 + src[1] * src[2]
++        w[dst[0]:dst[0] + n] = w[src[0]:src[0] + n]
++        w[dst[3][F_HWREV]] = 0x46
++        changed += 1
++    if not changed:
++        print('%s: изменений нет' % path)
++        return
++    open(path, 'wb').write(struct.pack('<%dI' % len(w), *w))
++    print('%s: hw_rev 0x46 -> двухдиапазонный блок (%d)' % (path, changed))
++
++
++if __name__ == '__main__':
++    main(sys.argv[1])

@@ -119,8 +119,9 @@ ax50_base_mac() {
 		ax50_log "базовый MAC $mac (источник: $src)"
 		[ "$src" = fallback ] && \
 			ax50_log "заводской MAC не найден — используется производный локальный адрес"
-		mkdir -p "${AX50_MAC_CACHE%/*}"
-		echo "$mac" > "$AX50_MAC_CACHE"
+		# В preinit (board_detect) /etc ещё только для чтения — кэш
+		# запишется при следующем вызове из работающей системы
+		{ mkdir -p "${AX50_MAC_CACHE%/*}" && echo "$mac" > "$AX50_MAC_CACHE"; } 2>/dev/null
 		echo "$mac"
 		return 0
 	done
