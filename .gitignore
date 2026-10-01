@@ -19,3 +19,6 @@ key-build.ucert*
 *.swp
 *~
 .DS_Store
+
+# Python
+__pycache__/
