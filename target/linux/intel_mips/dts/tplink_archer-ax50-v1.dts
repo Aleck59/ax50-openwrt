@@ -225,3 +225,22 @@
 &pcie2 {
 	/delete-property/ reset-gpios;
 };
+
+/*
+ * I2C референс-платы (INA219, регулятор TPS65273) на AX50 не распаян: группа
+ * pinctrl i2c0 занимает пины 21/22, а это светодиод питания и кнопка reset.
+ * С включённой шиной пин 22 мультиплексирован на I2C, GPIO кнопки читается
+ * как «нажата» и система уходит в failsafe; в логе — «i2c bus is busy»,
+ * ошибки tps65273/ina2xx. Питание CPU от несуществующего BUCK1 тоже убираем.
+ */
+&i2c {
+	status = "disabled";
+};
+
+&pinctrl_i2c0 {
+	status = "disabled";
+};
+
+&cpu0 {
+	/delete-property/ cpu-supply;
+};
