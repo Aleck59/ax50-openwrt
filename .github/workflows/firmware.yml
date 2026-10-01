@@ -14,9 +14,13 @@ on:
   push:
     branches: [ '**' ]
     tags: [ 'v*' ]
-    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE' ]
+    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE', 'tools/**',
+                    'config/feed-packages.txt', 'scripts/feed-*.sh',
+                    '.github/workflows/packages.yml' ]
   pull_request:
-    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE' ]
+    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE', 'tools/**',
+                    'config/feed-packages.txt', 'scripts/feed-*.sh',
+                    '.github/workflows/packages.yml' ]
   workflow_dispatch:
 
 concurrency:

@@ -19,6 +19,13 @@ description: Выпуск версии прошивки ax50-openwrt — тег,
 `workflow_dispatch` и запуск из job работают, только когда файл workflow есть в ветке по
 умолчанию (`main`).
 
+Фид в SDK: пакеты образа (`CONFIG_DEFAULT_*`) не пересобираются — они берутся из
+`*-packages.tar.gz` и в фиде имеют приоритет (`cp -n`). `!пакет` в `feed-packages.txt`
+исключает пакет. Локально:
+`scripts/docker.sh scripts/feed-build.sh /work/out/<sdk> /work/out/<packages> <тег> /work/site`;
+`FEED_REUSE_SDK=1` — только переиндексировать уже собранное в `build/sdk`.
+Изменения только фида/документации (`paths-ignore`) не перезапускают сборку прошивки.
+
 ## Выпуск
 
 ```bash
