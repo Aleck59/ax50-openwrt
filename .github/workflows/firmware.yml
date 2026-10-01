@@ -1,0 +1,201 @@
+#
+# Workflow 1: прошивка.
+#
+#   push в ветку / PR  -> проверки + сборка образа (артефакты в Actions)
+#   тег v*             -> то же + GitHub Release с образами, SDK и модулями
+#                         ядра; затем запускается workflow 2 (packages.yml),
+#                         который собирает фид opkg для этого релиза.
+#
+# Выпуск версии:  git tag v1.0.0 && git push origin v1.0.0
+#
+name: Прошивка
+
+on:
+  push:
+    branches: [ '**' ]
+    tags: [ 'v*' ]
+    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE' ]
+  pull_request:
+    paths-ignore: [ '**.md', 'docs/**', '.claude/**', 'LICENSE' ]
+  workflow_dispatch:
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Проверки
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell-скрипты (shellcheck)
+        run: |
+          shellcheck -S warning scripts/*.sh
+          # скрипты для роутера (ash/busybox)
+          find package -type f \( -path '*/files/*' -o -path '*/root/*' \) | while read -r f; do
+            head -1 "$f" | grep -q '^#!/bin/sh' || continue
+            echo "$f"
+          done | xargs -r shellcheck -s sh -S error -e SC2034,SC3043,SC1091
+
+      - name: JSON, Python, JavaScript
+        run: |
+          find package -name '*.json' -print0 | xargs -0 -n1 python3 -m json.tool > /dev/null
+          python3 -m py_compile scripts/usign-pubkey.py
+          find package -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Патчи в формате unified diff
+        run: |
+          for p in patches/*/*.patch; do
+            grep -q '^+++ ' "$p" || { echo "не патч: $p"; exit 1; }
+          done
+
+  build:
+    name: Сборка
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    permissions:
+      contents: read
+    env:
+      JOBS: 4
+    steps:
+      - name: Освободить место
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache \
+                      /usr/local/share/boost /usr/share/swift /usr/local/.ghcup || true
+          sudo docker image prune -af > /dev/null || true
+          df -h /
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Версия
+        id: ver
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr 'A-Z' 'a-z')"
+          base="https://${owner}.github.io/${{ github.event.repository.name }}"
+          if [ "${{ github.ref_type }}" = tag ]; then
+            ver="${{ github.ref_name }}"
+            feed="$base/releases/$ver"
+          else
+            ver="$(git describe --tags --always)"
+            feed="$base/snapshots/$ver"
+          fi
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+          echo "FEED_URL=$feed" >> "$GITHUB_ENV"
+          echo "Версия: $ver, фид: $feed"
+
+      - name: Кэш загрузок (dl/)
+        uses: actions/cache@v4
+        with:
+          path: build/prplwrt/dl
+          key: dl-${{ hashFiles('config/feeds.conf', 'config/versions.env', 'package/**/Makefile', 'patches/**') }}
+          restore-keys: dl-
+
+      - name: Ключ подписи фида
+        env:
+          USIGN_KEY: ${{ secrets.USIGN_KEY }}
+        run: |
+          if [ -n "$USIGN_KEY" ]; then
+            mkdir -p build
+            printf '%s\n' "$USIGN_KEY" > build/usign.key
+            chmod 600 build/usign.key
+            echo "USIGN_KEY_FILE=/work/build/usign.key" >> "$GITHUB_ENV"
+            echo "Пакеты будут подписаны"
+          else
+            echo "::notice::Секрет USIGN_KEY не задан — фид не подписывается (см. docs/feed.md)"
+          fi
+
+      - name: Подготовка дерева
+        run: scripts/docker.sh scripts/prepare.sh
+
+      - name: Конфигурация
+        env:
+          WITH_KMODS: 1
+          WITH_SDK: 1
+        run: scripts/docker.sh scripts/configure.sh
+
+      - name: Сборка
+        run: scripts/docker.sh scripts/build.sh
+
+      - name: Сбор артефактов
+        if: always()
+        run: |
+          rm -f build/usign.key
+          scripts/docker.sh scripts/collect.sh "$VERSION" /work/out || true
+          ls -la out || true
+
+      - name: Логи ошибок
+        if: failure()
+        run: |
+          find build/prplwrt/logs -name '*.txt' -size +0 2>/dev/null | head -50 | while read -r f; do
+            echo "::group::$f"; tail -60 "$f"; echo "::endgroup::"
+          done
+
+      - name: Артефакт — образы
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ax50-openwrt-${{ steps.ver.outputs.version }}
+          path: |
+            out/*.bin
+            out/*.img
+            out/*.manifest
+            out/*-buildinfo.tar.gz
+            out/sha256sums
+          if-no-files-found: warn
+
+      - name: Артефакт — SDK и пакеты (для фида)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ax50-openwrt-${{ steps.ver.outputs.version }}-sdk
+          path: |
+            out/*-sdk.tar.xz
+            out/*-packages.tar.gz
+          retention-days: 14
+
+  release:
+    name: Релиз
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ax50-openwrt-${{ github.ref_name }}*
+          path: out
+          merge-multiple: true
+
+      - name: Описание релиза
+        run: scripts/release-notes.sh "${{ github.ref_name }}" out > notes.md
+
+      - name: Публикация
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+          pre=""
+          case "$tag" in *-*) pre="--prerelease" ;; esac
+          ( cd out && sha256sum -- *.bin *.img *.manifest *.tar.* > sha256sums )
+          gh release create "$tag" $pre --verify-tag \
+            --title "AX50 OpenWrt $tag" --notes-file notes.md \
+            out/*.bin out/*.img out/*.manifest out/*.tar.* out/sha256sums
+
+      - name: Запуск сборки фида (workflow 2)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run packages.yml --ref "${{ github.ref_name }}" -f release_tag="${{ github.ref_name }}"
