@@ -1,0 +1,76 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "zapret"
+msgstr "zapret"
+
+msgid "Configuration"
+msgstr "Конфигурация"
+
+msgid "Shell variables of zapret. The DPI desync strategy is NFQWS_OPT; pick one for your ISP with /opt/zapret/blockcheck.sh."
+msgstr "Переменные конфигурации zapret. Стратегия обхода DPI — NFQWS_OPT; подберите её для своего провайдера скриптом /opt/zapret/blockcheck.sh."
+
+msgid "Domains"
+msgstr "Домены"
+
+msgid "Domains processed by zapret, one per line (subdomains included)."
+msgstr "Домены, которые обрабатывает zapret, по одному в строке (поддомены включаются)."
+
+msgid "Exclusions"
+msgstr "Исключения"
+
+msgid "Domains that are never processed."
+msgstr "Домены, которые никогда не обрабатываются."
+
+msgid "Detected automatically"
+msgstr "Найдены автоматически"
+
+msgid "Blocked domains detected by nfqws (MODE_FILTER=autohostlist). Clear the list if something works worse than without zapret."
+msgstr "Заблокированные домены, найденные nfqws (MODE_FILTER=autohostlist). Очистите список, если что-то стало работать хуже, чем без zapret."
+
+msgid "Saved: %s"
+msgstr "Сохранено: %s"
+
+msgid "Service"
+msgstr "Служба"
+
+msgid "Status"
+msgstr "Состояние"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Not running"
+msgstr "Остановлена"
+
+msgid "starts at boot"
+msgstr "запускается при загрузке"
+
+msgid "does not start at boot"
+msgstr "не запускается при загрузке"
+
+msgid "Restart"
+msgstr "Перезапустить"
+
+msgid "Start"
+msgstr "Запустить"
+
+msgid "Stop"
+msgstr "Остановить"
+
+msgid "Disable autostart"
+msgstr "Отключить автозапуск"
+
+msgid "Enable autostart"
+msgstr "Включить автозапуск"
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Save and restart"
+msgstr "Сохранить и перезапустить"
+
+msgid "DPI circumvention (bol-van/zapret). Only listed and automatically detected domains are processed."
+msgstr "Обход DPI (bol-van/zapret). Обрабатываются только домены из списка и найденные автоматически."

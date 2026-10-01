@@ -1,0 +1,26 @@
+{
+	"luci-app-zapret": {
+		"description": "Grant access to zapret configuration",
+		"read": {
+			"file": {
+				"/opt/zapret/config": [ "read" ],
+				"/opt/zapret/ipset/zapret-hosts-user.txt": [ "read" ],
+				"/opt/zapret/ipset/zapret-hosts-user-exclude.txt": [ "read" ],
+				"/opt/zapret/ipset/zapret-hosts-auto.txt": [ "read" ],
+				"/etc/init.d/zapret": [ "exec" ]
+			},
+			"ubus": {
+				"service": [ "list" ]
+			}
+		},
+		"write": {
+			"file": {
+				"/opt/zapret/config": [ "write" ],
+				"/opt/zapret/ipset/zapret-hosts-user.txt": [ "write" ],
+				"/opt/zapret/ipset/zapret-hosts-user-exclude.txt": [ "write" ],
+				"/opt/zapret/ipset/zapret-hosts-auto.txt": [ "write" ],
+				"/etc/init.d/zapret": [ "exec" ]
+			}
+		}
+	}
+}

@@ -1,0 +1,19 @@
+#!/bin/sh
+# Подключение zapret к fw3 и права на списки (однократно при установке).
+
+uci -q get firewall.zapret >/dev/null || {
+	uci -q batch <<-UCI
+		set firewall.zapret=include
+		set firewall.zapret.path='/etc/firewall.zapret'
+		set firewall.zapret.reload='1'
+		commit firewall
+	UCI
+}
+
+# nfqws работает от пользователя daemon и сам дописывает найденные
+# заблокированные домены в zapret-hosts-auto.txt
+touch /opt/zapret/ipset/zapret-hosts-auto.txt
+chown -R daemon /opt/zapret/ipset 2>/dev/null
+
+/etc/init.d/zapret enable
+exit 0

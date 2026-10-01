@@ -1,0 +1,52 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "AdGuard Home"
+msgstr "AdGuard Home"
+
+msgid "Network-wide DNS filtering of ads and trackers. Detailed settings, filter lists and statistics are in the AdGuard Home web interface."
+msgstr "Фильтрация рекламы и трекеров на уровне DNS для всей сети. Подробные настройки, списки фильтров и статистика — в веб-интерфейсе AdGuard Home."
+
+msgid "Status"
+msgstr "Состояние"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Not running"
+msgstr "Остановлен"
+
+msgid "Web interface"
+msgstr "Веб-интерфейс"
+
+msgid "Not configured yet: open the web interface to run the setup wizard. For DNS choose port 5353, then enable forwarding below."
+msgstr "Ещё не настроен: откройте веб-интерфейс и пройдите мастер настройки. Для DNS выберите порт 5353, затем включите пересылку ниже."
+
+msgid "Service"
+msgstr "Служба"
+
+msgid "Restart"
+msgstr "Перезапустить"
+
+msgid "Start"
+msgstr "Запустить"
+
+msgid "Stop"
+msgstr "Остановить"
+
+msgid "Enable"
+msgstr "Включить"
+
+msgid "Start AdGuard Home at boot."
+msgstr "Запускать AdGuard Home при загрузке."
+
+msgid "Filter DNS of the whole network"
+msgstr "Фильтровать DNS всей сети"
+
+msgid "dnsmasq will forward all DNS queries to AdGuard Home on port %d. Local DHCP host names keep working."
+msgstr "dnsmasq будет пересылать все DNS-запросы в AdGuard Home на порт %d. Локальные имена DHCP-клиентов продолжат работать."
+
+msgid "Available after the setup wizard is complete."
+msgstr "Станет доступно после прохождения мастера настройки."
