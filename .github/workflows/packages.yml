@@ -46,7 +46,7 @@ jobs:
           sudo docker image prune -af > /dev/null || true
           df -h /
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.release_tag }}
           fetch-depth: 0
@@ -103,7 +103,7 @@ jobs:
           scripts/feed-site.sh site "$TAG" "${{ github.repository }}"
           du -sh site
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -120,7 +120,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Если Pages не включены
         if: failure()

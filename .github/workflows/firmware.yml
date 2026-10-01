@@ -31,7 +31,7 @@ jobs:
     name: Проверки
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Shell-скрипты (shellcheck)
         run: |
@@ -72,7 +72,7 @@ jobs:
           sudo docker image prune -af > /dev/null || true
           df -h /
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -94,7 +94,7 @@ jobs:
           echo "Версия: $ver, фид: $feed"
 
       - name: Кэш загрузок (dl/)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/prplwrt/dl
           key: dl-${{ hashFiles('config/feeds.conf', 'config/versions.env', 'package/**/Makefile', 'patches/**') }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Артефакт — образы
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ax50-openwrt-${{ steps.ver.outputs.version }}
           path: |
@@ -155,7 +155,7 @@ jobs:
 
       - name: Артефакт — SDK и пакеты (для фида)
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ax50-openwrt-${{ steps.ver.outputs.version }}-sdk
           path: |
@@ -172,9 +172,9 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           pattern: ax50-openwrt-${{ github.ref_name }}*
           path: out
