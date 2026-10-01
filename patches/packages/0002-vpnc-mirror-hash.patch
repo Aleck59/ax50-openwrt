@@ -1,0 +1,17 @@
+vpnc: PKG_MIRROR_HASH, чтобы исходники брались с зеркала OpenWrt
+
+Без хеша зеркало не используется, и сборка зависит от доступности
+SVN-сервера svn.unix-ag.uni-kl.de.
+
+--- a/net/vpnc/Makefile
++++ b/net/vpnc/Makefile
+@@ -17,6 +17,9 @@
+ PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+ PKG_SOURCE_VERSION:=$(PKG_REV)
+ PKG_SOURCE_PROTO:=svn
++# ax50-openwrt: svn.unix-ag.uni-kl.de часто недоступен — архив берётся с
++# зеркала OpenWrt (sources.cdn.openwrt.org), где он есть
++PKG_MIRROR_HASH:=5bc3df4861dc030dacfe70a5f5b2250249691126a13664f01bdf1c30674ed707
+ 
+ PKG_MAINTAINER:=Daniel Gimpelevich <daniel@gimpelevich.san-francisco.ca.us>
+ PKG_LICENSE:=VARIOUS

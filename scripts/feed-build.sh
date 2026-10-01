@@ -25,77 +25,99 @@ DEST="$SITE/releases/$TAG"
 
 require_non_root
 
-log "1/5 SDK"
-rm -rf "$SDK"
-mkdir -p "$SDK"
-tar -xJf "$SDK_TAR" -C "$SDK" --strip-components=1
-cd "$SDK"
-
-# Фиды на коммитах сборки прошивки. Свой фид (src-link) указывает на
-# /work/package — в контейнере сборки это и есть этот репозиторий.
-cp feeds.conf.default feeds.conf
-grep -q '^src-git base ' feeds.conf || \
-	sed -i "1i src-git base $PRPLWRT_URL^$PRPLWRT_COMMIT" feeds.conf
-grep -q '^src-link ax50 ' feeds.conf || echo "src-link ax50 $REPO_ROOT/package" >> feeds.conf
-sed -i "s|^src-link ax50 .*|src-link ax50 $REPO_ROOT/package|" feeds.conf
-cat feeds.conf
-
-log "2/5 Фиды и патчи"
-./scripts/feeds update -a
-apply_patches prplwrt feeds/base
-while read -r type name _; do
-	[ "$type" = src-git ] && [ -d "feeds/$name" ] && apply_patches "$name" "feeds/$name"
-done < feeds.conf
-./scripts/feeds update -i
-./scripts/feeds install -a >/dev/null
-for f in feed_wlan_6x feed_opensource_apps ax50; do
-	[ -d "feeds/$f" ] || [ -L "feeds/$f" ] && ./scripts/feeds install -a -f -p "$f" >/dev/null
-done
-
-log "3/5 Конфигурация"
-cat > .config <<-EOF
-	# CONFIG_ALL_NONSHARED is not set
-	# CONFIG_ALL_KMODS is not set
-	# CONFIG_ALL is not set
-	CONFIG_LUCI_LANG_ru=y
-	CONFIG_AUTOREMOVE=y
-EOF
-rm -f key-build key-build.pub
-if [ -n "${USIGN_KEY_FILE:-}" ]; then
-	install -m 600 "$USIGN_KEY_FILE" key-build
-	python3 "$REPO_ROOT/scripts/usign-pubkey.py" key-build > key-build.pub
-	echo "CONFIG_SIGNED_PACKAGES=y" >> .config
+# FEED_REUSE_SDK=1 — пропустить шаги 1–4 и переиндексировать уже собранное
+# в $BUILD_DIR/sdk (для отладки шага 5).
+if [ "${FEED_REUSE_SDK:-0}" = 1 ] && [ -d "$SDK/bin/packages" ]; then
+	log "Повторное использование SDK: $SDK"
+	cd "$SDK"
 else
-	echo "# CONFIG_SIGNED_PACKAGES is not set" >> .config
-fi
-make defconfig >/dev/null
+	log "1/5 SDK"
+	rm -rf "$SDK"
+	mkdir -p "$SDK"
+	tar -xJf "$SDK_TAR" -C "$SDK" --strip-components=1
+	cd "$SDK"
 
-# Раскрываем шаблоны ("luci-app-*") по списку доступных пакетов
-avail="$(grep -h '^Package: ' tmp/.packageinfo | awk '{print $2}' | sort -u)"
-want=0 missing=""
-while read -r p _; do
-	case "$p" in ''|'#'*) continue ;; esac
-	if [ "${p%\*}" != "$p" ]; then
-		list="$(echo "$avail" | grep "^${p%\*}" || true)"
-	else
-		list="$(echo "$avail" | grep -x "$p" || true)"
-	fi
-	[ -n "$list" ] || { missing="$missing $p"; continue; }
-	for q in $list; do
-		echo "CONFIG_PACKAGE_$q=m" >> .config
-		want=$((want + 1))
+	# Фиды на коммитах сборки прошивки. Свой фид (src-link) указывает на
+	# /work/package — в контейнере сборки это и есть этот репозиторий.
+	cp feeds.conf.default feeds.conf
+	grep -q '^src-git base ' feeds.conf || \
+		sed -i "1i src-git base $PRPLWRT_URL^$PRPLWRT_COMMIT" feeds.conf
+	grep -q '^src-link ax50 ' feeds.conf || echo "src-link ax50 $REPO_ROOT/package" >> feeds.conf
+	sed -i "s|^src-link ax50 .*|src-link ax50 $REPO_ROOT/package|" feeds.conf
+	cat feeds.conf
+
+	log "2/5 Фиды и патчи"
+	./scripts/feeds update -a
+	apply_patches prplwrt feeds/base
+	while read -r type name _; do
+		[ "$type" = src-git ] && [ -d "feeds/$name" ] && apply_patches "$name" "feeds/$name"
+	done < feeds.conf
+	./scripts/feeds update -i
+	./scripts/feeds install -a >/dev/null
+	for f in feed_wlan_6x feed_opensource_apps ax50; do
+		[ -d "feeds/$f" ] || [ -L "feeds/$f" ] && ./scripts/feeds install -a -f -p "$f" >/dev/null
 	done
-done < "$REPO_ROOT/config/feed-packages.txt"
-[ -z "$missing" ] || warn "нет в фидах:$missing"
-make defconfig >/dev/null
-echo "запрошено пакетов: $want, выбрано с зависимостями: $(grep -c '^CONFIG_PACKAGE_.*=m' .config)"
 
-log "4/5 Сборка пакетов"
-make -j"$JOBS" download IGNORE_ERRORS="n m y" || true
-make -j"$JOBS" package/compile IGNORE_ERRORS="n m y" || {
-	warn "часть пакетов не собралась — повтор однопоточно для журнала"
-	make -j1 package/compile IGNORE_ERRORS="n m y" || true
-}
+	log "3/5 Конфигурация"
+	cat > .config <<-EOF
+		# CONFIG_ALL_NONSHARED is not set
+		# CONFIG_ALL_KMODS is not set
+		# CONFIG_ALL is not set
+		CONFIG_LUCI_LANG_ru=y
+		CONFIG_AUTOREMOVE=y
+	EOF
+	rm -f key-build key-build.pub
+	if [ -n "${USIGN_KEY_FILE:-}" ]; then
+		install -m 600 "$USIGN_KEY_FILE" key-build
+		python3 "$REPO_ROOT/scripts/usign-pubkey.py" key-build > key-build.pub
+		echo "CONFIG_SIGNED_PACKAGES=y" >> .config
+	else
+		echo "# CONFIG_SIGNED_PACKAGES is not set" >> .config
+	fi
+	make defconfig >/dev/null
+
+	# Пакеты образа (DEVICE_PACKAGES и пр., CONFIG_DEFAULT_*) уже собраны
+	# workflow 1 и лежат в архиве пакетов. В SDK их не пересобираем: драйверы
+	# Intel без дерева ядра прошивки не собираются. Если пакет нужен как
+	# зависимость, defconfig вернёт его как =m.
+	sed -n 's/^CONFIG_DEFAULT_\(.*\)=y$/# CONFIG_PACKAGE_\1 is not set/p' .config >> .config
+
+	# Исключения ("!пакет") — до раскрытия шаблонов
+	excl="$(sed -n 's/^!\([^[:space:]]*\).*/\1/p' "$REPO_ROOT/config/feed-packages.txt")"
+
+	# Раскрываем шаблоны ("luci-app-*") по списку доступных пакетов
+	avail="$(grep -h '^Package: ' tmp/.packageinfo | awk '{print $2}' | sort -u)"
+	want=0 missing=""
+	while read -r p _; do
+		case "$p" in ''|'#'*|'!'*) continue ;; esac
+		if [ "${p%\*}" != "$p" ]; then
+			list="$(echo "$avail" | grep "^${p%\*}" || true)"
+		else
+			list="$(echo "$avail" | grep -x "$p" || true)"
+		fi
+		[ -n "$list" ] || { missing="$missing $p"; continue; }
+		for q in $list; do
+			echo "$excl" | grep -qx "$q" && continue
+			echo "CONFIG_PACKAGE_$q=m" >> .config
+			want=$((want + 1))
+		done
+	done < "$REPO_ROOT/config/feed-packages.txt"
+	[ -z "$missing" ] || warn "нет в фидах:$missing"
+	for q in $excl; do echo "# CONFIG_PACKAGE_$q is not set" >> .config; done
+	make defconfig >/dev/null
+	for q in $excl; do
+		grep -q "^CONFIG_PACKAGE_$q=[ym]" .config && warn "исключённый $q выбран как зависимость"
+	done
+	echo "запрошено пакетов: $want, выбрано с зависимостями: $(grep -c '^CONFIG_PACKAGE_.*=m' .config)"
+
+	log "4/5 Сборка пакетов"
+	make -j"$JOBS" download IGNORE_ERRORS="n m y" || true
+	make -j"$JOBS" package/compile IGNORE_ERRORS="n m y" || {
+		warn "часть пакетов не собралась — повтор однопоточно для журнала"
+		make -j1 package/compile IGNORE_ERRORS="n m y" || true
+	}
+
+fi
 
 ARCH="$(ls bin/packages | head -n1)"
 [ -n "$ARCH" ] || die "SDK ничего не собрал"
@@ -105,15 +127,22 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 tar -xzf "$PKGS_TAR" -C "$DEST"
 mkdir -p "$DEST/packages/$ARCH"
-cp -a bin/packages/"$ARCH"/. "$DEST/packages/$ARCH/"
+# Пакеты прошивки (ровно то, что в образе) не перезаписываются собранными SDK
+cp -an bin/packages/"$ARCH"/. "$DEST/packages/$ARCH/"
 
+# ipkg-make-index.sh вызывает mkhash из staging_dir/host/bin
+export PATH="$SDK/staging_dir/host/bin:$PATH"
 USIGN="$SDK/staging_dir/host/bin/usign"
-for dir in $(find "$DEST" -name '*.ipk' -printf '%h\n' | sort -u); do
+# Все каталоги фида, включая пустые (их Packages из архива прошивки иначе
+# остались бы с подписью ключа сборки прошивки)
+for dir in $(find "$DEST" \( -name '*.ipk' -o -name Packages \) -printf '%h\n' | sort -u); do
 	(
 		cd "$dir"
 		rm -f Packages Packages.gz Packages.sig Packages.manifest
-		"$SDK/scripts/ipkg-make-index.sh" . > Packages.manifest 2>/dev/null
-		grep -vE '^(Maintainer|LicenseFiles|Source|SourceName|Require)' Packages.manifest > Packages
+		"$SDK/scripts/ipkg-make-index.sh" . > Packages.manifest 2> .index.log \
+			|| { cat .index.log >&2; exit 1; }
+		rm -f .index.log
+		grep -vE '^(Maintainer|LicenseFiles|Source|SourceName|Require)' Packages.manifest > Packages || true
 		gzip -9nc Packages > Packages.gz
 		if [ -f "$SDK/key-build" ]; then
 			"$USIGN" -S -m Packages -s "$SDK/key-build"

@@ -30,7 +30,7 @@ mkdir -p "$REPO_ROOT/build"
 
 # Переменные, которые понимают scripts/*.sh, пробрасываются в контейнер
 passenv=()
-for v in VERSION WITH_KMODS WITH_SDK USIGN_KEY_FILE FEED_URL; do
+for v in VERSION WITH_KMODS WITH_SDK USIGN_KEY_FILE FEED_URL FEED_REUSE_SDK; do
 	[ -n "${!v:-}" ] && passenv+=(-e "$v=${!v}")
 done
 
