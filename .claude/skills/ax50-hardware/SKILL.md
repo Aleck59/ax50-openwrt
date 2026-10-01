@@ -8,7 +8,7 @@ description: Справочник по железу TP-Link Archer AX50 v1 (GRX3
 Источники: GPL `ax50v1_GPL_3.tar.gz` (UGW-7.5.1.50, `Iplatform/build/product_configs/ax50v1/sdk.config`)
 и прошивка 1.1.2 Build 20251022 (DTB, rootfs, U-Boot). Подробно — `docs/hardware.md`.
 
-- SoC Intel GRX350 (xRX500), MIPS interAptiv **big-endian**, пакеты `mips_24kc`.
+- SoC Intel GRX350 (xRX500), MIPS interAptiv **big-endian**, пакеты `mips_24kc_nomips16`.
 - ОЗУ 256 МБ (`mem=256M@512M`), NAND **128 МБ**, страница 2 КБ, блок 128 КБ.
 - `mtdparts=17c00000.nand-parts:1m(uboot),256k(ubootconfigA),256k(ubootconfigB),256k(gphyfirmware),1m(calibration),124m(system_sw),-(res)` — U-Boot передаёт это ядру.
 - `system_sw` — UBI: `kernelA/rootfsA` (+B), `data_vol` (данные TP-Link), `rootfs_data` (оверлей OpenWrt).
