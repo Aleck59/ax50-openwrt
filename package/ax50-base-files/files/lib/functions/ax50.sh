@@ -90,7 +90,7 @@ ax50_mac_from_raw() {
 	return 1
 }
 
-ax50_mac_fallback() {
+ax50_mac_from_fallback() {
 	local dev hash
 	dev="$(find_mtd_part calibration)"
 	[ -n "$dev" ] || return 1

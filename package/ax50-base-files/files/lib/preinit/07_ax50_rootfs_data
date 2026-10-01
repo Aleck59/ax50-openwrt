@@ -1,0 +1,17 @@
+#!/bin/sh
+# Том rootfs_data (overlay с настройками) после заливки fullimage из U-Boot.
+# Хук таргета (06_create_rootfs_data) создаёт его только для референс-плат
+# EASY350/EASY550/PRX, а образ U-Boot содержит лишь ядро и rootfs. Размер —
+# всё свободное место, как делает sysupgrade (nand.sh).
+
+ax50_create_rootfs_data() {
+	case "$(cat /tmp/sysinfo/board_name 2>/dev/null)" in
+	"TP-Link Archer AX50"*) ;;
+	*) return 0 ;;
+	esac
+	ubinfo /dev/ubi0 --name=rootfs_data >/dev/null 2>&1 && return 0
+	echo "- ax50: создание тома rootfs_data -"
+	ubimkvol /dev/ubi0 -N rootfs_data -m
+}
+
+[ "$INITRAMFS" = "1" ] || boot_hook_add preinit_main ax50_create_rootfs_data

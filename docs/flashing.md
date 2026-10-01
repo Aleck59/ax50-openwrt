@@ -40,10 +40,15 @@ scp root@192.168.1.1:/tmp/ax50-backup-*.tar.gz .
 ```
 setenv ipaddr 192.168.1.1
 setenv serverip 192.168.1.2
-tftpboot $(loadaddr) ax50-openwrt-vX.Y.Z-initramfs-kernel.bin
+tftpboot 0x86000000 ax50-openwrt-vX.Y.Z-initramfs-kernel.bin
 run ramargs addmisc
-bootm $(loadaddr)
+bootm 0x86000000
 ```
+
+Адрес `0x86000000`, а не `$(loadaddr)` (`0x80800000`): ядро распаковывается с
+`0x80020000`, и образ с initramfs (~17 МБ, в распакованном виде больше) затирает
+архив, лежащий на `loadaddr` — U-Boot останавливается с
+`LZMA: uncompress or overwrite error 1`. ОЗУ у U-Boot 224 МБ (до `0x8E000000`).
 
 (`addmisc` добавляет `mtdparts` и `mem=256M@512M` из окружения стока.) Система
 полностью работает в памяти; после перезагрузки снова стартует сток. Проверьте:
@@ -71,8 +76,21 @@ reset
 ```
 
 `update_fullimage` — штатный макрос стока: записывает образ в банки B и A тома
-`system_sw` (тома `kernelA/rootfsA`, `kernelB/rootfsB`). Тома `data_vol` (данные TP-Link)
-и разделы `uboot`, `calibration` не затрагиваются.
+`system_sw`. Прошивка работает из банка A (`kernelA/rootfsA`, переменная `active_bank=A`).
+Тома `data_vol` (данные TP-Link) и разделы `uboot`, `calibration` не затрагиваются.
+
+Что нормально увидеть в консоли при первой установке поверх стока:
+
+- `UBI error: ubi_create_volume: cannot create volume 3, error -17` и
+  `kernelB volume not found` (то же для `rootfsB`): номера томов в окружении U-Boot
+  (`kernelB_id=3`, `rootfsB_id=4`) заняты стоковыми `rootfsB` и `data_vol`, поэтому банк
+  B не создаётся. Старые `kernelB/rootfsB` при этом удаляются — освобождается место.
+  Банк A записывается (`Volume "kernelA" found ...`), этого достаточно.
+- `Erasing Nand... Writing to Nand... done` и `Erasing redundant Nand...` — это сохранение
+  окружения U-Boot (обе копии), а не запись образа в сырую флеш.
+
+При первой загрузке создаётся том `rootfs_data` (настройки) на всё свободное место
+`system_sw` — так же его создаёт `sysupgrade`.
 
 ## 4. Обновление установленной прошивки
 
@@ -106,7 +124,14 @@ reset
 
 ## Если что-то пошло не так
 
-- **Есть консоль U-Boot** — всё поправимо: повторите шаг 2 или 3.
+- **Есть консоль U-Boot** — всё поправимо: повторите шаг 2 или 3. Если OpenWrt уже
+  стоял, `rootfs_data` занимает всё свободное место и новый образ большего размера не
+  поместится — сначала удалите этот том (настройки сбросятся):
+  ```
+  run ubi_init
+  ubi remove rootfs_data
+  run update_fullimage
+  ```
 - **Не поднимается Wi-Fi** — `logread | grep -i -E 'mtlk|wlan|hostapd'`, `ls /tmp/wlanconfig`;
   пришлите вывод в issues.
 - **Неверные MAC-адреса** — `logread | grep ax50`; адрес можно задать вручную в
