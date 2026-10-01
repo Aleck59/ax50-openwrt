@@ -57,10 +57,13 @@ else
 		[ "$type" = src-git ] && [ -d "feeds/$name" ] && apply_patches "$name" "feeds/$name"
 	done < feeds.conf
 	./scripts/feeds update -i
-	./scripts/feeds install -a >/dev/null
-	for f in feed_wlan_6x feed_opensource_apps ax50; do
-		[ -d "feeds/$f" ] || [ -L "feeds/$f" ] && ./scripts/feeds install -a -f -p "$f" >/dev/null
+	# Фиды Intel (feed_*) — только драйверы и прошивки платформы: всё нужное
+	# собрано workflow 1 и лежит в архиве пакетов, а в SDK без дерева ядра
+	# прошивки они не собираются. Поэтому в SDK ставятся только общие фиды.
+	for f in base packages luci routing telephony; do
+		[ -d "feeds/$f" ] && ./scripts/feeds install -a -p "$f" >/dev/null
 	done
+	./scripts/feeds install -a -f -p ax50 >/dev/null
 
 	log "3/5 Конфигурация"
 	cat > .config <<-EOF
