@@ -93,7 +93,7 @@ jobs:
             echo "USIGN_KEY_FILE=/work/build/usign.key" >> "$GITHUB_ENV"
             echo "Пакеты будут подписаны"
           else
-            echo "::notice::Секрет USIGN_KEY не задан — фид не подписывается (см. docs/feed.md)"
+            echo "::notice::Секрет USIGN_KEY не задан — фид не подписывается (см. docs/release.md)"
           fi
 
       - name: Подготовка дерева
@@ -106,13 +106,23 @@ jobs:
         run: scripts/docker.sh scripts/configure.sh
 
       - name: Сборка
+        id: build
         run: scripts/docker.sh scripts/build.sh
 
+      # После успешной сборки ошибка сбора (например, нет SDK) валит job,
+      # после неудачной — собираем что есть, для разбора.
       - name: Сбор артефактов
         if: always()
+        env:
+          WITH_SDK: 1
+          BUILD_OK: ${{ steps.build.outcome == 'success' }}
         run: |
           rm -f build/usign.key
-          scripts/docker.sh scripts/collect.sh "$VERSION" /work/out || true
+          if [ "$BUILD_OK" = true ]; then
+            scripts/docker.sh scripts/collect.sh "$VERSION" /work/out
+          else
+            scripts/docker.sh scripts/collect.sh "$VERSION" /work/out || true
+          fi
           ls -la out || true
 
       - name: Логи ошибок

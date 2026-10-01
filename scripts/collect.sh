@@ -44,8 +44,13 @@ for f in config.buildinfo feeds.buildinfo version.buildinfo; do
 done
 [ ${#binfo[@]} -gt 0 ] && tar -czf "$OUT/$NAME-buildinfo.tar.gz" -C "$TGT" "${binfo[@]}"
 
-sdk="$(ls "$TGT"/openwrt-sdk-*.tar.xz 2>/dev/null | head -n1 || true)"
-[ -n "$sdk" ] && cp "$sdk" "$OUT/$NAME-sdk.tar.xz"
+# Имя SDK начинается с VERSION_DIST: ax50-openwrt-sdk-<версия>-…tar.xz
+sdk="$(ls "$TGT"/*-sdk-*.tar.xz 2>/dev/null | head -n1 || true)"
+if [ -n "$sdk" ]; then
+	cp "$sdk" "$OUT/$NAME-sdk.tar.xz"
+elif [ "${WITH_SDK:-0}" = 1 ]; then
+	die "нет SDK в $TGT (сборка с WITH_SDK=1)"
+fi
 
 # Пакеты: структура как на downloads.openwrt.org, чтобы workflow фида
 # просто разложил архив в корень релиза фида.
