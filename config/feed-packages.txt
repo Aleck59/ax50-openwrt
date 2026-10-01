@@ -1,0 +1,125 @@
+# Пакеты фида opkg, который собирает workflow 2 (packages.yml) через SDK.
+# Зависимости подтягиваются автоматически. Одна строка — один пакет;
+# строка вида "luci-app-*" означает все пакеты фида LuCI с таким префиксом.
+#
+# В фид также попадают все пакеты самой прошивки и модули ядра из workflow 1,
+# так что переустановка и обновление штатных пакетов тоже работают.
+
+# --- Пакеты этого репозитория ---
+adguardhome
+luci-app-adguardhome
+zapret
+luci-app-zapret
+luci-theme-footstrap
+ax50-base-files
+
+# --- Весь LuCI (приложения, протоколы, темы) ---
+luci-app-*
+luci-proto-*
+luci-theme-*
+
+# --- VPN ---
+openvpn-openssl
+openvpn-easy-rsa
+wireguard-tools
+wireguard
+strongswan-default
+xl2tpd
+pptpd
+softethervpn-server
+tinc
+zerotier
+
+# --- Прокси, DNS, шифрование DNS ---
+https-dns-proxy
+dnscrypt-proxy2
+stubby
+unbound-daemon
+tinyproxy
+privoxy
+shadowsocks-libev-ss-local
+shadowsocks-libev-ss-redir
+shadowsocks-libev-ss-rules
+simple-adblock
+adblock
+banip
+
+# --- Файловые службы и USB ---
+samba4-server
+ksmbd-server
+minidlna
+transmission-daemon-openssl
+aria2
+vsftpd
+nfs-kernel-server
+p910nd
+hd-idle
+ntfs-3g
+exfat-fsck
+e2fsprogs
+dosfstools
+f2fs-tools
+usbutils
+block-mount
+kmod-usb-storage
+
+# --- Мониторинг и диагностика ---
+collectd
+vnstat
+nlbwmon
+iperf3
+mtr
+tcpdump
+nmap
+ethtool
+bind-dig
+curl
+wget
+openssl-util
+lsof
+strace
+iftop
+bmon
+speedtest-netperf
+
+# --- QoS и маршрутизация ---
+sqm-scripts
+qos-scripts
+mwan3
+watchcat
+ddns-scripts
+miniupnpd
+igmpproxy
+udpxy
+bird2
+frr
+
+# --- Модемы 3G/4G и телефоны ---
+comgt
+comgt-ncm
+uqmi
+umbim
+usb-modeswitch
+chat
+
+# --- Командная строка ---
+bash
+coreutils
+diffutils
+findutils
+grep
+sed
+gawk
+less
+tmux
+screen
+nano
+vim
+htop
+jq
+git
+rsync
+openssh-sftp-server
+ttyd
+python3-light
+lua
