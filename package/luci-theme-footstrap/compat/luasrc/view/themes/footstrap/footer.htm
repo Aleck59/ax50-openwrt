@@ -1,0 +1,28 @@
+<%#
+ luci-theme-footstrap для LuCI 19.07 (ax50-openwrt): Lua-порт footer.ut.
+ Licensed to the public under the Apache License 2.0.
+-%>
+<%
+	local ver = require "luci.version"
+	local is_blank = (blank_page == true)
+-%>
+		<% if not is_blank then %>
+				</div>
+				<footer class="fs-footer" role="contentinfo">
+					<span>
+						Powered by
+						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">
+							<%=pcdata(ver.luciname)%> (<%=pcdata(ver.luciversion)%>)</a>
+						/
+						<a href="https://github.com/Aleck59/ax50-openwrt" target="_blank" rel="noreferrer">
+							<%=pcdata(ver.distname)%> <%=pcdata(ver.distversion)%></a>
+					</span>
+				</footer>
+			</main>
+		</div>
+		<% if luci.dispatcher.context.authsession then %>
+		<script>L.require('fs-compat').then(function() { L.require('menu-footstrap'); L.require('fs-select'); })</script>
+		<% end %>
+		<% end %>
+	</body>
+</html>

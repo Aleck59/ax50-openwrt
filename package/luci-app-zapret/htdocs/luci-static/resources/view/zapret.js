@@ -135,7 +135,11 @@ return view.extend({
 			]);
 		});
 
-		var tabs = E('div', {}, panes);
+		/* initTabGroup вставляет меню вкладок перед контейнером панелей,
+		 * поэтому у контейнера уже должен быть родитель */
+		var tabs = E('div', {}, panes),
+		    section = E('div', { 'class': 'cbi-section' }, [ tabs ]);
+
 		ui.tabs.initTabGroup(tabs.childNodes);
 
 		return E([], [
@@ -143,7 +147,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-map-descr' },
 				_('DPI circumvention (bol-van/zapret). Only listed and automatically detected domains are processed.')),
 			status,
-			E('div', { 'class': 'cbi-section' }, tabs)
+			section
 		]);
 	},
 

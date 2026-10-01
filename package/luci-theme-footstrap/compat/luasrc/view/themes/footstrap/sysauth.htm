@@ -1,0 +1,65 @@
+<%#
+ luci-theme-footstrap для LuCI 19.07 (ax50-openwrt): Lua-порт sysauth.ut —
+ страница входа без «обвязки» (blank_page), форма рендерится сервером и
+ работает без JavaScript. Поля — надмножество штатного sysauth.htm 19.07.
+ Licensed to the public under the Apache License 2.0.
+-%>
+<%
+	local util = require "luci.util"
+	local boardinfo = util.ubus("system", "board") or {}
+	blank_page = true
+-%>
+<%+header%>
+<form method="post" class="fs-login" action="<%=pcdata(FULL_REQUEST_URI)%>">
+	<p class="fs-login-host"><%=pcdata(striptags(boardinfo.hostname or "OpenWrt"))%></p>
+	<% if fuser then %>
+		<div class="alert-message error">
+			<p><%:Invalid username and/or password! Please try again.%></p>
+		</div>
+	<% end %>
+	<div class="cbi-map">
+		<h1 name="content"><%:Authorization Required%></h1>
+		<div class="cbi-map-descr">
+			<%:Please enter your username and password.%>
+		</div>
+		<div class="cbi-section"><div class="cbi-section-node">
+			<div class="cbi-value">
+				<label class="cbi-value-title" for="luci_username"><%:Username%></label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="text" name="luci_username" id="luci_username" autocomplete="username" value="<%=pcdata(duser)%>" />
+				</div>
+			</div>
+			<div class="cbi-value cbi-value-last">
+				<label class="cbi-value-title" for="luci_password"><%:Password%></label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="password" name="luci_password" id="luci_password" autocomplete="current-password" autofocus />
+				</div>
+			</div>
+		</div></div>
+	</div>
+	<div class="cbi-page-actions">
+		<input type="submit" value="<%:Login%>" class="btn cbi-button cbi-button-apply" />
+	</div>
+</form>
+<%
+	local uci = require "luci.model.uci".cursor()
+	local fs  = require "nixio.fs"
+	local https_key = uci:get("uhttpd", "main", "key")
+	local https_port = uci:get("uhttpd", "main", "listen_https")
+	if type(https_port) == "table" then
+		https_port = https_port[1]
+	end
+	if https_port and https_key and fs.access(https_key) then
+		https_port = https_port:match("(%d+)$")
+%>
+<script>
+	if (document.location.protocol != 'https:') {
+		var url = 'https://' + window.location.hostname + ':' + '<%=https_port%>' + window.location.pathname;
+		var img = new Image;
+		img.onload = function() { window.location = url };
+		img.src = 'https://' + window.location.hostname + ':' + '<%=https_port%>' + '<%=resource%>/cbi/up.gif?' + Math.random();
+		setTimeout(function() { img.src = '' }, 5000);
+	}
+</script>
+<% end %>
+<%+footer%>
