@@ -27,6 +27,10 @@ description: Добавление и правка пакетов в фиде р�
 - ACL — `root/usr/share/rpcd/acl.d/<пакет>.json`; root получает все группы.
 - Переводы — `po/ru/<имя>.po`; `_()` поддерживает контекст (`msgctxt`).
 - Makefile: `include $(TOPDIR)/feeds/luci/luci.mk`, `LUCI_PKGARCH:=all`.
+- `luci.mk` сам вызывает `BuildPackage` и задаёт `Build/Prepare` и `PKG_BUILD_DIR` (без
+  версии). Всё, что меняет правила пакета (`Hooks/Prepare/Post`, `PKG_UNPACK`,
+  `CONFIG_LUCI_CSSTIDY`, `conffiles`), ставить **до** include — после него не действует.
+  Пример — `package/luci-theme-footstrap/Makefile`. Проверять содержимое `.ipk`, а не только стенд.
 
 ## Проверка
 

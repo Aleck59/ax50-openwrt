@@ -32,7 +32,8 @@ LUCI_TITLE:=Footstrap Theme
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
 
-include $(TOPDIR)/feeds/luci/luci.mk
+# luci.mk сам вызывает BuildPackage и задаёт Build/Prepare, поэтому всё,
+# что влияет на правила пакета, должно стоять до include.
 
 # csstidy и jsmin из LuCI 19.07 портят современный CSS (:has(), color-mix())
 # и JS темы — апстрим отключает их по той же причине.
@@ -43,11 +44,19 @@ define Package/luci-theme-footstrap/conffiles
 /etc/config/footstrap
 endef
 
-define Build/Prepare
-	rm -rf $(PKG_BUILD_DIR)/upstream $(PKG_BUILD_DIR)/htdocs $(PKG_BUILD_DIR)/luasrc $(PKG_BUILD_DIR)/root
+# luci.mk задаёт PKG_BUILD_DIR без версии, а архив из git распаковывается в
+# каталог с версией — поэтому стандартная распаковка отключена, исходники
+# апстрима распаковываются в $(PKG_BUILD_DIR)/upstream, и из них собирается
+# раскладка htdocs/ luasrc/ root/ (см. assemble.sh).
+PKG_UNPACK:=true
+
+define Footstrap/Assemble
 	mkdir -p $(PKG_BUILD_DIR)/upstream
 	$(TAR) -C $(PKG_BUILD_DIR)/upstream --strip-components=1 -xJf $(DL_DIR)/$(PKG_SOURCE)
 	sh ./assemble.sh $(PKG_BUILD_DIR)/upstream ./compat $(PKG_BUILD_DIR) $(PKG_VERSION)
 endef
+Hooks/Prepare/Post += Footstrap/Assemble
+
+include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature

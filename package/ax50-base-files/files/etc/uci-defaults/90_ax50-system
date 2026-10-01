@@ -4,4 +4,13 @@
 	uci -q set system.@system[0].hostname='ArcherAX50'
 	uci -q commit system
 }
+
+# Тема footstrap по умолчанию — один раз: маркер ax50_theme сохраняется в
+# /etc/config/luci, и после sysupgrade выбор пользователя не меняется.
+if [ -d /www/luci-static/footstrap ] && [ "$(uci -q get luci.main.ax50_theme)" != 1 ]; then
+	uci -q set luci.themes.Footstrap='/luci-static/footstrap'
+	uci -q set luci.main.mediaurlbase='/luci-static/footstrap'
+	uci -q set luci.main.ax50_theme='1'
+	uci -q commit luci
+fi
 exit 0
