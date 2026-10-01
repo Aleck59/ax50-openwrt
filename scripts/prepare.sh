@@ -27,10 +27,16 @@ git_pristine() {
 }
 
 log "1/6 База prplWrt @ ${PRPLWRT_COMMIT:0:12}"
+# init + fetch, а не clone: каталог может уже существовать — CI восстанавливает
+# в него кэш загрузок (dl/) до подготовки дерева
 if [ ! -d "$TREE/.git" ]; then
-	git clone -q -b "$PRPLWRT_BRANCH" "$PRPLWRT_URL" "$TREE"
+	mkdir -p "$TREE"
+	git -C "$TREE" init -q
+	git -C "$TREE" remote add origin "$PRPLWRT_URL"
+	git -C "$TREE" fetch -q origin "$PRPLWRT_BRANCH"
+else
+	git -C "$TREE" fetch -q origin "$PRPLWRT_BRANCH" 2>/dev/null || true
 fi
-git -C "$TREE" fetch -q origin "$PRPLWRT_BRANCH" 2>/dev/null || true
 git -C "$TREE" checkout -q -f "$PRPLWRT_COMMIT"
 git_pristine "$TREE"
 git -C "$TREE" log --oneline -1
