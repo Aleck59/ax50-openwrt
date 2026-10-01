@@ -59,6 +59,13 @@ jobs:
           gh release download "$TAG" -D in -p '*-sdk.tar.xz' -p '*-packages.tar.gz'
           ls -la in
 
+      - name: Кэш загрузок SDK
+        uses: actions/cache@v5
+        with:
+          path: build/sdk-dl
+          key: sdk-dl-${{ hashFiles('config/feeds.conf', 'config/versions.env', 'config/feed-packages.txt', 'package/**/Makefile', 'patches/**') }}
+          restore-keys: sdk-dl-
+
       - name: Ключ подписи
         env:
           USIGN_KEY: ${{ secrets.USIGN_KEY }}

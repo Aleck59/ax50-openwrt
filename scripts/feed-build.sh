@@ -35,6 +35,10 @@ else
 	rm -rf "$SDK"
 	mkdir -p "$SDK"
 	tar -xJf "$SDK_TAR" -C "$SDK" --strip-components=1
+	# Исходники — вне каталога SDK: переживают пересборку и кэшируются в CI
+	mkdir -p "$BUILD_DIR/sdk-dl"
+	rm -rf "$SDK/dl"
+	ln -s "$BUILD_DIR/sdk-dl" "$SDK/dl"
 	cd "$SDK"
 
 	# Фиды на коммитах сборки прошивки. Свой фид (src-link) указывает на
