@@ -47,6 +47,7 @@ jobs:
     timeout-minutes: 340
     permissions:
       contents: read
+      actions: write   # удаление устаревших кэшей
     env:
       JOBS: 4
     steps:
@@ -100,14 +101,85 @@ jobs:
             echo "::notice::Секрет USIGN_KEY не задан — фид не подписывается (см. docs/release.md)"
           fi
 
+      # Образ сборки (Ubuntu 20.04 + зависимости) собирается ~10 минут — храним
+      # его в кэше; scripts/docker.sh пересобирает только при смене Dockerfile.
+      - name: Кэш образа сборки
+        id: img-cache
+        uses: actions/cache@v5
+        with:
+          path: build/docker-image.tar.zst
+          key: docker-img-${{ runner.os }}-${{ hashFiles('docker/Dockerfile', 'scripts/docker.sh') }}
+
+      - name: Загрузка образа из кэша
+        if: steps.img-cache.outputs.cache-hit == 'true'
+        run: zstd -dc build/docker-image.tar.zst | docker load
+
       - name: Подготовка дерева
         run: scripts/docker.sh scripts/prepare.sh
+
+      - name: Сохранение образа в кэш
+        if: steps.img-cache.outputs.cache-hit != 'true'
+        run: docker save ax50-build | zstd -T0 -3 -q -o build/docker-image.tar.zst
 
       - name: Конфигурация
         env:
           WITH_KMODS: 1
           WITH_SDK: 1
         run: scripts/docker.sh scripts/configure.sh
+
+      # Хост-утилиты и кросс-тулчейн зависят только от закреплённого дерева,
+      # патчей базы, образа сборки и параметров тулчейна в .config.
+      - name: Ключи кэша тулчейна
+        id: keys
+        run: |
+          sum=$( { cat config/versions.env docker/Dockerfile
+            cat patches/prplwrt/*.patch 2>/dev/null
+            grep -E '^CONFIG_(TARGET_BOARD|TARGET_SUBTARGET|TARGET_ARCH_PACKAGES|CPU_TYPE|ARCH|TARGET_OPTIMIZATION|EXTRA_OPTIMIZATION|SOFT_FLOAT|USE_MIPS16|USE_MUSL|USE_GLIBC|BINUTILS_|GCC_|LIBC|TARGET_SUFFIX|TOOLCHAINOPTS|EXTERNAL_TOOLCHAIN|KERNEL_GIT|LINUX_)' build/prplwrt/.config
+          } | sha256sum | cut -c1-40)
+          echo "toolchain=toolchain-${{ runner.os }}-$sum" >> "$GITHUB_OUTPUT"
+
+      - name: Кэш хост-утилит и тулчейна
+        id: tc-cache
+        uses: actions/cache@v5
+        with:
+          # stamp сборки tools в 19.07 лежит в staging_dir/target-*/stamp
+          path: |
+            build/prplwrt/staging_dir/host
+            build/prplwrt/staging_dir/toolchain-*
+            build/prplwrt/staging_dir/target-*/stamp/.tools_compile_*
+          key: ${{ steps.keys.outputs.toolchain }}
+
+      # Свежий checkout новее восстановленных stamp-файлов — без touch make
+      # счёл бы утилиты и тулчейн устаревшими и собрал заново
+      - name: Отметить кэш тулчейна актуальным
+        if: steps.tc-cache.outputs.cache-hit == 'true'
+        working-directory: build/prplwrt
+        run: find staging_dir/host/stamp staging_dir/toolchain-*/stamp staging_dir/target-*/stamp -type f -exec touch {} +
+
+      - name: Удалить устаревшие кэши
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ steps.keys.outputs.toolchain }}
+          KEEP_IMG: docker-img-${{ runner.os }}-${{ hashFiles('docker/Dockerfile', 'scripts/docker.sh') }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --limit 100 --json id,key \
+              --jq '.[] | "\(.id) \(.key)"' |
+          while read -r id key; do
+            case "$key" in
+            "$KEEP"|"$KEEP_IMG") ;;
+            toolchain-*|docker-img-*) echo "удаляю $key"; gh cache delete "$id" --repo "$GITHUB_REPOSITORY" ;;
+            esac
+          done
+
+      - name: Загрузка исходников
+        run: scripts/docker.sh bash -c 'cd build/prplwrt && { make -j8 download || make -j1 download V=s; }'
+
+      - name: Хост-утилиты и тулчейн
+        if: steps.tc-cache.outputs.cache-hit != 'true'
+        run: |
+          scripts/docker.sh scripts/build.sh tools/install toolchain/install \
+            || scripts/docker.sh bash -c 'cd build/prplwrt && make -j1 V=s tools/install toolchain/install'
 
       - name: Сборка
         id: build

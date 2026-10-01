@@ -17,14 +17,23 @@ IMAGE="${IMAGE:-ax50-build}"
 
 command -v docker >/dev/null || { echo "нужен docker" >&2; exit 1; }
 
-ctx="$(mktemp -d)"
-trap 'rm -rf "$ctx"' EXIT
-cp "$REPO_ROOT/docker/Dockerfile" "$ctx/"
-[ -n "${EXTRA_CA:-}" ] && cp "$EXTRA_CA" "$ctx/extra-ca.crt"
-docker build -q -t "$IMAGE" --network host \
-	--build-arg UID="${BUILD_UID:-$(id -u)}" --build-arg GID="${BUILD_GID:-$(id -g)}" \
-	${HTTPS_PROXY:+--build-arg https_proxy="$HTTPS_PROXY"} \
-	"$ctx" >/dev/null
+# Образ пересобирается, только если изменились Dockerfile, UID/GID или CA:
+# хеш этих входов хранится в метке образа (CI восстанавливает образ из кэша).
+img_hash="$( { cat "$REPO_ROOT/docker/Dockerfile"
+	echo "${BUILD_UID:-$(id -u)}:${BUILD_GID:-$(id -g)}"
+	[ -n "${EXTRA_CA:-}" ] && cat "$EXTRA_CA"
+} | sha256sum | cut -c1-16)"
+if [ "$(docker image inspect -f '{{index .Config.Labels "ax50.hash"}}' "$IMAGE" 2>/dev/null)" != "$img_hash" ]; then
+	ctx="$(mktemp -d)"
+	trap 'rm -rf "$ctx"' EXIT
+	cp "$REPO_ROOT/docker/Dockerfile" "$ctx/"
+	[ -n "${EXTRA_CA:-}" ] && cp "$EXTRA_CA" "$ctx/extra-ca.crt"
+	echo "docker: сборка образа $IMAGE ($img_hash)" >&2
+	docker build -q -t "$IMAGE" --network host --label "ax50.hash=$img_hash" \
+		--build-arg UID="${BUILD_UID:-$(id -u)}" --build-arg GID="${BUILD_GID:-$(id -g)}" \
+		${HTTPS_PROXY:+--build-arg https_proxy="$HTTPS_PROXY"} \
+		"$ctx" >/dev/null
+fi
 
 mkdir -p "$REPO_ROOT/build"
 

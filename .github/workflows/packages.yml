@@ -77,6 +77,17 @@ jobs:
             echo "USIGN_KEY_FILE=/work/build/usign.key" >> "$GITHUB_ENV"
           fi
 
+      - name: Кэш образа сборки
+        id: img-cache
+        uses: actions/cache@v5
+        with:
+          path: build/docker-image.tar.zst
+          key: docker-img-${{ runner.os }}-${{ hashFiles('docker/Dockerfile', 'scripts/docker.sh') }}
+
+      - name: Загрузка образа из кэша
+        if: steps.img-cache.outputs.cache-hit == 'true'
+        run: zstd -dc build/docker-image.tar.zst | docker load
+
       - name: Сборка пакетов (SDK)
         run: |
           scripts/docker.sh scripts/feed-build.sh \
