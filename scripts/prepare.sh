@@ -72,6 +72,10 @@ for f in feed_target_mips feed_datapath feed_ppa feed_gphy_firmware \
 done
 ./scripts/feeds install intel_mips
 [ -L target/linux/intel_mips ] || die "внешний таргет intel_mips не установился"
+# Кэш метаданных (tmp/) собран до появления ссылки target/linux/intel_mips:
+# kmod-ы из её modules.mk (kmod-usb-dwc3-grx500 и др.) в него не попали, а
+# по времени изменения make кэш не обновит. Сбрасываем — make пересканирует.
+rm -rf tmp
 
 log "6/6 Оверлей rootfs"
 rm -rf "$TREE/files"

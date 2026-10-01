@@ -77,6 +77,15 @@ while IFS= read -r line; do
 done < <(cat "$REPO_ROOT/config/image.config"
 	[ "${WITH_KMODS:-0}" = 1 ] && cat "$REPO_ROOT/config/kmods.config")
 
+# Пакеты устройства (DEVICE_PACKAGES) тоже должны быть выбраны: если пакета
+# нет в метаданных, defconfig молча его пропускает, а ядро потом спотыкается
+# о не заданный в конфиге модуль.
+while IFS= read -r p; do
+	grep -q "^CONFIG_PACKAGE_$p=[ym]" .config && continue
+	warn "пакет устройства не выбран: $p"
+	missing=$((missing + 1))
+done < <(sed -n 's/^CONFIG_DEFAULT_\(.*\)=y$/\1/p' .config)
+
 [ "$missing" = 0 ] || die "$missing символ(ов) конфигурации не выбрано — см. выше"
 
 grep -q '^CONFIG_TARGET_intel_mips_xrx500_DEVICE_TPLINK_AX50=y' .config \
