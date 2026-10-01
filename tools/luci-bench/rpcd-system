@@ -1,0 +1,9 @@
+#!/bin/sh
+case "$1" in
+list) echo '{ "board": {}, "info": {} }' ;;
+call)
+	case "$2" in
+	board) echo '{"kernel":"4.9.206","hostname":"ArcherAX50","system":"Intel GRX350","model":"TP-Link Archer AX50 v1","board_name":"TP-Link Archer AX50 v1","release":{"distribution":"AX50-OpenWrt","version":"1.0.0","revision":"r0-test","target":"intel_mips/xrx500","description":"AX50-OpenWrt 1.0.0"}}' ;;
+	info) echo '{"localtime":1759300000,"uptime":3600,"load":[1000,2000,3000],"memory":{"total":268435456,"free":120000000,"shared":1000000,"buffered":5000000,"available":150000000,"cached":30000000},"swap":{"total":0,"free":0}}' ;;
+	esac ;;
+esac

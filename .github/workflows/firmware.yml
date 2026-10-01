@@ -33,26 +33,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Shell-скрипты (shellcheck)
-        run: |
-          shellcheck -S warning scripts/*.sh
-          # скрипты для роутера (ash/busybox)
-          find package -type f \( -path '*/files/*' -o -path '*/root/*' \) | while read -r f; do
-            head -1 "$f" | grep -q '^#!/bin/sh' || continue
-            echo "$f"
-          done | xargs -r shellcheck -s sh -S error -e SC2034,SC3043,SC1091
-
-      - name: JSON, Python, JavaScript
-        run: |
-          find package -name '*.json' -print0 | xargs -0 -n1 python3 -m json.tool > /dev/null
-          python3 -m py_compile scripts/usign-pubkey.py
-          find package -name '*.js' -print0 | xargs -0 -n1 node --check
-
-      - name: Патчи в формате unified diff
-        run: |
-          for p in patches/*/*.patch; do
-            grep -q '^+++ ' "$p" || { echo "не патч: $p"; exit 1; }
-          done
+      - name: Проверки (scripts/lint.sh)
+        run: scripts/lint.sh
 
   build:
     name: Сборка
