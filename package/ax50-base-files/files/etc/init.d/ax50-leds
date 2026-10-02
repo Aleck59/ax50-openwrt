@@ -15,9 +15,5 @@ start() {
 	# Включение: триггеры из /etc/config/system, питание и WAN — как обычно
 	/etc/init.d/led start
 	echo default-on > /sys/class/leds/blue:power/trigger 2>/dev/null
-	if ifstatus wan 2>/dev/null | grep -q '"up": true'; then
-		ACTION=ifup INTERFACE=wan sh /etc/hotplug.d/iface/30-ax50-wanled
-	else
-		ACTION=ifdown INTERFACE=wan sh /etc/hotplug.d/iface/30-ax50-wanled
-	fi
+	/usr/libexec/ax50-wanled
 }

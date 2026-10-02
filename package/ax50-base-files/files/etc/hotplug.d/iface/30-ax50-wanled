@@ -1,23 +1,6 @@
 #!/bin/sh
-# Светодиод «Интернет» как в стоке: синий — WAN поднят, оранжевый — нет связи.
-
-[ "$INTERFACE" = "wan" ] || exit 0
-# Светодиоды выключены кнопкой LED
-[ -e /etc/ax50/leds-off ] && exit 0
-
-led() {
-	[ -w "/sys/class/leds/$1/brightness" ] || return 0
-	echo none > "/sys/class/leds/$1/trigger"
-	echo "$2" > "/sys/class/leds/$1/brightness"
-}
-
+# Светодиод WAN пересчитывается при подъёме/падении любого интерфейса:
+# маршрут по умолчанию может дать wan, wan6, L2TP, VPN...
 case "$ACTION" in
-ifup)
-	led "orange:wan" 0
-	led "blue:wan" 1
-	;;
-ifdown)
-	led "blue:wan" 0
-	led "orange:wan" 1
-	;;
+ifup|ifdown|ifupdate) /usr/libexec/ax50-wanled ;;
 esac

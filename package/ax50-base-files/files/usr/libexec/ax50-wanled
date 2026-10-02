@@ -1,0 +1,36 @@
+#!/bin/sh
+# Светодиод «Интернет» (WAN):
+#   нет кабеля в порту WAN       — не горит;
+#   кабель есть, нет подключения — оранжевый (триггер netdev link на eth1);
+#   есть маршрут по умолчанию    — синий (PPPoE, L2TP, DHCP, static — любой
+#                                  поднятый интерфейс с default route).
+
+WAN_DEV=eth1
+B=/sys/class/leds/blue:wan
+O=/sys/class/leds/orange:wan
+
+[ -d "$B" ] && [ -d "$O" ] || exit 0
+
+if [ -e /etc/ax50/leds-off ]; then
+	for l in "$B" "$O"; do
+		echo none > "$l/trigger"
+		echo 0 > "$l/brightness"
+	done
+	exit 0
+fi
+
+if ip -4 route show 2>/dev/null | grep -q '^default ' ||
+   ip -6 route show 2>/dev/null | grep -q '^default '; then
+	echo none > "$O/trigger"
+	echo 0 > "$O/brightness"
+	echo none > "$B/trigger"
+	echo 1 > "$B/brightness"
+else
+	echo none > "$B/trigger"
+	echo 0 > "$B/brightness"
+	# Оранжевый горит, пока на eth1 есть линк, — без опроса, силами ядра
+	grep -q '\[netdev\]' "$O/trigger" || echo netdev > "$O/trigger" 2>/dev/null || exit 0
+	echo "$WAN_DEV" > "$O/device_name"
+	[ -e "$O/link" ] && echo 1 > "$O/link"
+fi
+exit 0
