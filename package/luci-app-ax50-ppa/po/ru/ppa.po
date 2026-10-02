@@ -28,8 +28,8 @@ msgstr "Аппаратная маршрутизация и NAT в коммута
 msgid "MPE engine"
 msgstr "Движок MPE"
 
-msgid "Acceleration firmware on CPU3."
-msgstr "Прошивка ускорителя на CPU3."
+msgid "Acceleration firmware on CPU3 (not in this firmware: CPU3 is given to Linux)."
+msgstr "Прошивка ускорителя на CPU3 (в этой прошивке нет: CPU3 отдан Linux)."
 
 msgid "Hardware fast path"
 msgstr "Аппаратный быстрый путь"

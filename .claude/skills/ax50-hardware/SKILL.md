@@ -9,7 +9,7 @@ description: Справочник по железу TP-Link Archer AX50 v1 (GRX3
 и прошивка 1.1.2 Build 20251022 (DTB, rootfs, U-Boot). Подробно — `docs/hardware.md`.
 
 - SoC Intel GRX350 (xRX500), MIPS interAptiv **big-endian**, пакеты `mips_24kc_nomips16`.
-- 2 ядра × 2 VPE: CPU0–2 у Linux, CPU3 — прошивка MPE ("MPEFW", как в стоке). Отдать CPU3 Linux нельзя без своего таймера: в `xrx500.dtsi` clockevent GPTC есть только у CPU0–2, иначе RCU stall и зависание загрузки. Трафик по ядрам Linux: NAPI CBM всегда на CPU2 (`cbm.c`: прерывания `cbm_dqm` привязаны драйвером к VPE0–3, обработчик берёт очередь из `smp_processor_id()`), RPS (`hotplug.d/net/25-ax50-rps`) — на CPU0–1, irqbalance — с `--policyscript=/usr/libexec/ax50-irqban` (бан `cbm_*`, `gptc*`); без бана перенос `cbm_dqm` останавливает сеть.
+- 2 ядра × 2 VPE, все 4 у Linux: `&cpu3 { default-OS = "LINUX"; }` и `&gptc0` с clockevent для CPU3 (таймер 1, в `xrx500.dtsi` это heartbeat для MPE) — без своего таймера CPU3 давал RCU stall и загрузка зависала. MPE (ltq_mpe_hal_drv) в образ не входит. Трафик по ядрам Linux: NAPI CBM всегда на CPU2 (`cbm.c`: прерывания `cbm_dqm` привязаны драйвером к VPE0–3, обработчик берёт очередь из `smp_processor_id()`), RPS (`hotplug.d/net/25-ax50-rps`) — на CPU0–1, irqbalance — с `--policyscript=/usr/libexec/ax50-irqban` (бан `cbm_*`, `gptc*`); без бана перенос `cbm_dqm` останавливает сеть.
 - ОЗУ 256 МБ (`mem=256M@512M`), NAND **128 МБ**, страница 2 КБ, блок 128 КБ.
 - `mtdparts=17c00000.nand-parts:1m(uboot),256k(ubootconfigA),256k(ubootconfigB),256k(gphyfirmware),1m(calibration),124m(system_sw),-(res)` — U-Boot передаёт это ядру.
 - `system_sw` — UBI: `kernelA/rootfsA` (+B), `data_vol` (данные TP-Link), `rootfs_data` (оверлей OpenWrt).

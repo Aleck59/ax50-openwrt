@@ -65,7 +65,7 @@ return view.extend({
 		o.default = '1';
 		o.rmempty = false;
 
-		o = s.option(form.Flag, 'mpe', _('MPE engine'), _('Acceleration firmware on CPU3.'));
+		o = s.option(form.Flag, 'mpe', _('MPE engine'), _('Acceleration firmware on CPU3 (not in this firmware: CPU3 is given to Linux).'));
 		o.default = '1';
 		o.rmempty = false;
 

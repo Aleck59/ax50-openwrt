@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| SoC | Intel/MaxLinear GRX350 (xRX500), MIPS interAptiv, **big-endian**, 2 ядра × 2 потока (VPE): 3 у Linux, CPU3 — прошивка MPE (`cpu@3 default-OS = "MPEFW"`, как в стоке) |
+| SoC | Intel/MaxLinear GRX350 (xRX500), MIPS interAptiv, **big-endian**, 2 ядра × 2 потока (VPE) — все 4 отданы Linux (`cpu@3 default-OS = "LINUX"`, в стоке на CPU3 прошивка MPE) |
 | ОЗУ | 256 МБ DDR3 (`CONFIG_UBOOT_CONFIG_DDR_256M`, ядру — `mem=256M@512M`) |
 | Флеш | **128 МБ NAND** (`CONFIG_UBOOT_CONFIG_NAND_FLASH_128M`), страница 2 КБ, блок 128 КБ, BCH |
 | Wi-Fi | MaxLinear WAV654 (WAV600), 2×2 2.4 ГГц + 2×2 5 ГГц, PCIe |
