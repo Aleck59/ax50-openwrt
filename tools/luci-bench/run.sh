@@ -74,7 +74,7 @@ apps)
 	out="$WORK/apps"; rm -rf "$out"
 	mkdir -p "$out/www/luci-static/resources/view" "$out/usr/lib/lua/luci/i18n" "$out/etc/config" \
 		"$out/etc/init.d" "$out/opt/zapret/ipset" "$out/usr/bin" "$out/usr/share"
-	for a in luci-app-adguardhome luci-app-zapret luci-app-traffic luci-app-netdata; do
+	for a in luci-app-adguardhome luci-app-zapret luci-app-traffic luci-app-netdata luci-app-ax50-temperature; do
 		cp -R "$REPO/package/$a/htdocs/." "$out/www/"
 		cp -R "$REPO/package/$a/root/usr/." "$out/usr/"
 		for po in "$REPO/package/$a"/po/ru/*.po; do

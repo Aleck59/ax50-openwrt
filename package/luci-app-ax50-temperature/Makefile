@@ -1,9 +1,9 @@
 #
-# LuCI: температура процессора и радиомодулей Wi-Fi на главной странице.
+# LuCI: температура процессора и Wi-Fi и нагрузка ядер на главной странице.
 #
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=LuCI temperature block (CPU and Wi-Fi) for TP-Link Archer AX50
+LUCI_TITLE:=LuCI status blocks for TP-Link Archer AX50: temperature, CPU core load
 LUCI_DEPENDS:=+luci-mod-status +iwlwav-iw
 LUCI_PKGARCH:=all
 PKG_LICENSE:=GPL-2.0-only

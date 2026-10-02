@@ -12,3 +12,18 @@ msgstr "Wi-Fi %s ГГц"
 
 msgid "Grant access to temperature sensors"
 msgstr "Доступ к датчикам температуры"
+
+msgid "Grant access to temperature sensors and CPU load"
+msgstr "Доступ к датчикам температуры и нагрузке процессора"
+
+msgid "CPU core load"
+msgstr "Нагрузка ядер"
+
+msgid "Core %d"
+msgstr "Ядро %d"
+
+msgid "Total"
+msgstr "Всего"
+
+msgid "interrupts"
+msgstr "прерывания"

@@ -1,9 +1,14 @@
 {
 	"luci-app-ax50-temperature": {
-		"description": "Grant access to temperature sensors",
+		"description": "Grant access to temperature sensors and CPU load",
 		"read": {
 			"file": {
-				"/usr/libexec/ax50-temperature": [ "exec" ]
+				"/usr/libexec/ax50-temperature": [
+					"exec"
+				],
+				"/proc/stat": [
+					"read"
+				]
 			}
 		}
 	}

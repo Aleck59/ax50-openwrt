@@ -248,3 +248,10 @@
 &cpu0 {
 	/delete-property/ cpu-supply;
 };
+
+/* CPU3 (второй поток второго ядра) отдан Linux: 4 потока для обработки трафика
+ * (RPS, irqbalance). В стоке и в easy350_anywan_axepoint.dts на нём прошивка
+ * MPE ("MPEFW"), но без рабочего PPA ускоритель MPE простаивал. */
+&cpu3 {
+	default-OS = "LINUX";
+};
