@@ -1,0 +1,13 @@
+#!/bin/sh
+# Скрипт политики irqbalance (--policyscript): $1 — путь sysfs, $2 — номер IRQ.
+# ban=true для прерываний, которые драйверы привязали к своим ядрам:
+#   cbm_eqm, cbm_dqm — очереди CBM datapath GRX350: обработчик определяет
+#     очередь по smp_processor_id(), после переноса пакеты перестают
+#     забираться и встаёт вся сеть (проверено на роутере);
+#   gptc_event* — таймеры (clockevent) ядер; IPI.
+
+name="$(awk -v n="$2:" '$1 == n { print $NF; exit }' /proc/interrupts)"
+case "$name" in
+cbm_*|gptc*|*ipi*|*IPI*) echo ban=true ;;
+esac
+exit 0

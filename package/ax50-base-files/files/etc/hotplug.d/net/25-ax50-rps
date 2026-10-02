@@ -1,7 +1,8 @@
 #!/bin/sh
-# Распределение приёма пакетов (RPS) по всем ядрам Linux. Штатный
-# 20-smp-tune пропускает eth0_x/eth1: у сетевых устройств datapath GRX350 нет
-# ссылки device, и весь трафик обрабатывался одним ядром (softirq ~1 ядро).
+# Распределение приёма пакетов (RPS). Пакеты от CBM datapath принимает NAPI
+# на CPU2 (cbm_isr_6, прерывание привязано драйвером), поэтому обработку
+# стеком (маршрутизация, NAT, мост) отдаём остальным ядрам. Штатный
+# 20-smp-tune eth0_x/eth1 пропускает: у них нет ссылки device.
 [ "$ACTION" = add ] || exit 0
 case "$INTERFACE" in
 eth*|wlan*) ;;
@@ -10,7 +11,10 @@ esac
 
 n="$(grep -c '^processor' /proc/cpuinfo)"
 [ "$n" -gt 1 ] || exit 0
-mask="$(printf %x $(( (1 << n) - 1 )))"
+mask=$(( (1 << n) - 1 ))
+# CPU2 занят приёмом, если ядер больше двух
+[ "$n" -gt 2 ] && mask=$(( mask & ~4 ))
+mask="$(printf %x "$mask")"
 
 for q in /sys/class/net/"$INTERFACE"/queues/rx-*; do
 	[ -w "$q/rps_cpus" ] && echo "$mask" > "$q/rps_cpus"

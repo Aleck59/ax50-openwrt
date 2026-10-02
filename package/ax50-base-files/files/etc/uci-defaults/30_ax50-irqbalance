@@ -1,6 +1,10 @@
 #!/bin/sh
-# irqbalance разносит прерывания сети и Wi-Fi по всем ядрам Linux
+# irqbalance разносит прерывания по ядрам Linux, кроме привязанных драйверами
+# (очереди CBM datapath, таймеры ядер) — их исключает /usr/libexec/ax50-irqban.
 uci -q get irqbalance.irqbalance >/dev/null || exit 0
-uci -q set irqbalance.irqbalance.enabled=1
-uci -q commit irqbalance
+uci -q batch <<-EOT
+	set irqbalance.irqbalance.enabled=1
+	set irqbalance.irqbalance.policyscript=/usr/libexec/ax50-irqban
+	commit irqbalance
+EOT
 exit 0
