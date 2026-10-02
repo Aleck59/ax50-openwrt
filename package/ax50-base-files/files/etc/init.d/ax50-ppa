@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-# Аппаратное ускорение PPA (GRX350: PAE + MPE + DirectConnect для Wi-Fi).
+# Аппаратное ускорение PPA (GRX350: PAE + MPE) маршрутизации LAN <-> WAN.
 # Модули ppa_api/ltq_pae_hal/ltq_mpe_hal_drv грузятся при старте, но само
 # ускорение включает только `ppacmd init` и регистрация интерфейсов — в стоке
 # это делала UGW, в prplWrt этого нет, и весь трафик шёл через процессор.
@@ -9,7 +9,10 @@ START=21
 STOP=89
 
 WAN_IFS="eth1"
-LAN_IFS="br-lan eth0_1 eth0_2 eth0_3 eth0_4"
+# Только мост: регистрация точек Wi-Fi и портов моста ускорения не дала
+# (трафик Wi-Fi <-> LAN внутри br-lan — коммутация), а скорость Wi-Fi упала
+# с ~700 до ~500 Мбит/с.
+LAN_IFS="br-lan"
 
 start() {
 	local i
@@ -22,10 +25,7 @@ start() {
 	ppacmd control --enable-lan --enable-wan >/dev/null 2>&1
 	for i in $WAN_IFS; do ppacmd addwan -i "$i" >/dev/null 2>&1; done
 	for i in $LAN_IFS; do ppacmd addlan -i "$i" >/dev/null 2>&1; done
-	# Интерфейсы, поднятые до нас (Wi-Fi, PPPoE); остальные — hotplug
-	for i in /sys/class/net/wlan*; do
-		[ -e "$i" ] && ppacmd addlan -i "${i##*/}" >/dev/null 2>&1
-	done
+	# Туннели WAN, поднятые до нас; остальные — hotplug
 	for i in /sys/class/net/pppoe-* /sys/class/net/l2tp-*; do
 		[ -e "$i" ] && ppacmd addwan -i "${i##*/}" >/dev/null 2>&1
 	done

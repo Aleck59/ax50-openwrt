@@ -108,7 +108,7 @@ libc и ядра. Ставьте только из встроенного фид
 - Светодиод «Интернет»: нет кабеля в WAN — не горит, кабель есть, но нет подключения —
   оранжевый, есть подключение (маршрут по умолчанию через PPPoE, L2TP, DHCP или static) —
   синий.
-- Аппаратное ускорение PPA (PAE, MPE, DirectConnect для Wi-Fi) включает
+- Аппаратное ускорение маршрутизации LAN↔WAN (PPA: PAE, MPE) включает
   `/etc/init.d/ax50-ppa`; проверка — `ppacmd getversion`, `ppacmd getlan`,
   `ppacmd getwan`, сессии — `ppacmd getsessions`. Ускоренные соединения идут мимо
   iptables и SQM; выключить — `/etc/init.d/ax50-ppa stop && /etc/init.d/ax50-ppa disable`.
