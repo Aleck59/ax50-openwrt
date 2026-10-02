@@ -96,8 +96,8 @@ MTD calibration  =  tar.gz
 | | GPIO | |
 |---|---|---|
 | Reset | gpio0 22 | active-low, `KEY_RESTART` |
-| WPS | gpio0 8 | active-low, запускает WPS PBC на всех точках |
-| Wi-Fi | gpio1 4 | active-low, `KEY_RFKILL` |
+| WPS/Wi-Fi | gpio0 8 | active-low: короче 2 с — WPS PBC, от 2 с — вкл/выкл Wi-Fi (как в стоке) |
+| LED | gpio1 4 | active-low, `KEY_LIGHTS_TOGGLE`: вкл/выкл всех светодиодов (в стоковом DTB подписана «wifi») |
 
 | Светодиод | GPIO (gpio0, active-high) | Поведение в прошивке |
 |---|---|---|

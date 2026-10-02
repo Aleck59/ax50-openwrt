@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+# Светодиоды AX50: применить выбор кнопки LED (после /etc/init.d/led).
+
+START=97
+
+start() {
+	local l
+	if [ -e /etc/ax50/leds-off ]; then
+		for l in /sys/class/leds/*; do
+			echo none > "$l/trigger" 2>/dev/null
+			echo 0 > "$l/brightness" 2>/dev/null
+		done
+		return 0
+	fi
+	# Включение: триггеры из /etc/config/system, питание и WAN — как обычно
+	/etc/init.d/led start
+	echo default-on > /sys/class/leds/blue:power/trigger 2>/dev/null
+	if ifstatus wan 2>/dev/null | grep -q '"up": true'; then
+		ACTION=ifup INTERFACE=wan sh /etc/hotplug.d/iface/30-ax50-wanled
+	else
+		ACTION=ifdown INTERFACE=wan sh /etc/hotplug.d/iface/30-ax50-wanled
+	fi
+}

@@ -2,6 +2,8 @@
 # Светодиод «Интернет» как в стоке: синий — WAN поднят, оранжевый — нет связи.
 
 [ "$INTERFACE" = "wan" ] || exit 0
+# Светодиоды выключены кнопкой LED
+[ -e /etc/ax50/leds-off ] && exit 0
 
 led() {
 	[ -w "/sys/class/leds/$1/brightness" ] || return 0

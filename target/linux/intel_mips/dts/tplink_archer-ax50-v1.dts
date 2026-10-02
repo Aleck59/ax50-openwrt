@@ -55,16 +55,20 @@
 			linux,code = <KEY_RESTART>;
 		};
 
+		/* Кнопка WPS/Wi-Fi: короткое нажатие — WPS, от 2 с — вкл/выкл Wi-Fi
+		 * (как в стоке, /etc/rc.button/wps) */
 		wps {
 			label = "wps";
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 
-		rfkill {
-			label = "wifi";
+		/* Кнопка LED: вкл/выкл всех светодиодов (/etc/rc.button/lights_toggle).
+		 * В стоковом DTB она подписана «wifi», но Wi-Fi не управляет. */
+		led {
+			label = "led";
 			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_RFKILL>;
+			linux,code = <KEY_LIGHTS_TOGGLE>;
 		};
 	};
 

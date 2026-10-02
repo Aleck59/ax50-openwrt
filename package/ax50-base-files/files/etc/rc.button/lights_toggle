@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Кнопка LED: выключить/включить все светодиоды. Состояние сохраняется
+# (/etc/ax50/leds-off) и применяется при загрузке (/etc/init.d/ax50-leds).
+
+[ "$ACTION" = "released" ] || exit 0
+
+if [ -e /etc/ax50/leds-off ]; then
+	rm -f /etc/ax50/leds-off
+	/etc/init.d/ax50-leds start
+	logger -t ax50 "кнопка LED: светодиоды включены"
+else
+	mkdir -p /etc/ax50 && touch /etc/ax50/leds-off
+	/etc/init.d/ax50-leds start
+	logger -t ax50 "кнопка LED: светодиоды выключены"
+fi

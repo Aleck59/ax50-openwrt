@@ -19,7 +19,7 @@ description: Справочник по железу TP-Link Archer AX50 v1 (GRX3
   Wi-Fi 2.4 = −1, 5 = −2. Поиск: `data_vol` → `ethaddr` U-Boot (кроме заглушки
   00:E0:92:00:01:40) → `res`/`calibration` → производный LAA (`/lib/functions/ax50.sh`).
 - Порты: LAN1→`eth0_4`, LAN2→`eth0_3`, LAN3→`eth0_2`, LAN4→`eth0_1`, WAN→`eth1`.
-- Кнопки: reset gpio0 22, WPS gpio0 8, Wi-Fi gpio1 4 (active-low).
+- Кнопки (active-low): reset gpio0 22; WPS/Wi-Fi gpio0 8 (короче 2 с — WPS, дольше — вкл/выкл Wi-Fi); LED gpio1 4 (KEY_LIGHTS_TOGGLE, в стоковом DTB подписана «wifi», но управляет светодиодами).
 - LED (gpio0, active-high): wlan2g 1, wlan5g 4, orange:wan 6, blue:wan 7, lan 9, usb 11, power 21.
 - USB VBUS gpio0 14 / gpio0 2; SSO-контроллер не используется (его pinctrl занимает пины 4/5/6).
 - PCIe сброс: gpio1 11 / gpio1 29; у pcie2 сброс убран (gpio0 7 — светодиод).

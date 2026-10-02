@@ -1,15 +1,31 @@
 #!/bin/sh
 #
-# Кнопка WPS: короткое нажатие запускает WPS PBC на всех точках доступа.
-# hostapd от MaxLinear не регистрируется в ubus, поэтому — через hostapd_cli.
+# Кнопка WPS/Wi-Fi (как в стоке):
+#   короткое нажатие (< 2 с)  — WPS PBC на всех точках доступа;
+#   удержание от 2 с          — включить/выключить Wi-Fi (все радио).
+# hostapd от MaxLinear не регистрируется в ubus, поэтому WPS — через hostapd_cli.
 
 [ "$ACTION" = "released" ] || exit 0
-[ "$SEEN" -lt 3 ] 2>/dev/null || exit 0
 
-for sock in /var/run/hostapd/wlan* /var/run/hostapd-*/wlan*; do
-	[ -S "$sock" ] || continue
-	hostapd_cli -p "${sock%/*}" -i "${sock##*/}" wps_pbc >/dev/null 2>&1 \
-		&& logger -t ax50 "WPS PBC: ${sock##*/}"
-done
+. /lib/functions.sh
 
-return 0
+if [ "${SEEN:-0}" -lt 2 ] 2>/dev/null; then
+	for sock in /var/run/hostapd/wlan*.*; do
+		[ -S "$sock" ] || continue
+		hostapd_cli -p "${sock%/*}" -i "${sock##*/}" wps_pbc >/dev/null 2>&1 \
+			&& logger -t ax50 "WPS PBC: ${sock##*/}"
+	done
+	exit 0
+fi
+
+# Если включено хоть одно радио — выключаем все, иначе включаем все
+any_on=0
+check() { local d; config_get_bool d "$1" disabled 0; [ "$d" = 1 ] || any_on=1; }
+apply() { uci set "wireless.$1.disabled=$any_on"; }
+
+config_load wireless
+config_foreach check wifi-device
+config_foreach apply wifi-device
+uci commit wireless
+logger -t ax50 "кнопка Wi-Fi: радио $([ "$any_on" = 1 ] && echo выключены || echo включены)"
+wifi
