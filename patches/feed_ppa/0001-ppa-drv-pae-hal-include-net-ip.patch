@@ -1,0 +1,19 @@
+ppa_drv: ltq_pae_hal без MPE — подключить <net/ip.h>
+
+CPU3 отдан Linux, kmod-ppa-drv-grx500-mpe не собирается. ip_eth_mc_map()
+из <net/ip.h> в ltq_pae_hal.c раньше приходил косвенно через заголовки
+MPE; без них сборка падает (implicit declaration, -Werror).
+
+--- a/ppa_drv/patches/001-pae-hal-include-net-ip.patch	1970-01-01 00:00:00.000000000 +0000
++++ b/ppa_drv/patches/001-pae-hal-include-net-ip.patch	2026-10-02 12:19:01.620572165 +0000
+@@ -0,0 +1,10 @@
++--- a/src/platform/xrx500/ltq_pae_hal.c	2026-10-02 12:19:01.604337908 +0000
+++++ b/src/platform/xrx500/ltq_pae_hal.c	2026-10-02 12:19:01.609421609 +0000
++@@ -37,6 +37,7 @@
++ #include <linux/init.h>
++ #include <linux/netdevice.h>
++ #include <linux/ip.h>
+++#include <net/ip.h> /* ip_eth_mc_map: без MPE не подключается косвенно */
++ #include <net/checksum.h>
++ #include <lantiq.h>
++ #include <lantiq_soc.h>
