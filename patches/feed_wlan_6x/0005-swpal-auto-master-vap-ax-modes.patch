@@ -10,7 +10,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 
 --- /dev/null
 +++ b/wlan_wave_feed/swpal_6x-uci/patches/03_ax50_master_vap_and_modes.patch
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,132 @@
 +--- a/files/scripts/lib/netifd/wireless/mac80211.sh
 ++++ b/files/scripts/lib/netifd/wireless/mac80211.sh
 +@@ -289,6 +289,9 @@
@@ -112,3 +112,34 @@ swpal: главный VAP без записи в конфигурации, ре�
 + 			if [ -n "$hostapd_ctrl" ]; then
 + 				type=bss
 + 			else
++@@ -910,11 +981,25 @@
++ 	json_select config
++ 	json_get_vars mode
++ 
++-	ip link set dev "$ifname" up || {
++-		wireless_setup_vif_failed IFUP_ERROR
++-		json_select ..
++-		return
++-	}
+++	if [ "$mode" = ap ]; then
+++		# ax50-openwrt: точки wlanN.M hostapd создаёт асинхронно — после
+++		# ACS главного VAP, через секунды после запуска. Раньше здесь
+++		# «ip link up» падал, vif не регистрировался в netifd (нет ifname в
+++		# network.wireless status) и LuCI показывал точку отключённой, без
+++		# канала и клиентов. Ждём интерфейс; поднимает его hostapd.
+++		local n=0
+++		while [ ! -e "/sys/class/net/$ifname" ] && [ $n -lt 30 ]; do
+++			sleep 1
+++			n=$((n + 1))
+++		done
+++		ip link set dev "$ifname" up 2>/dev/null
+++	else
+++		ip link set dev "$ifname" up || {
+++			wireless_setup_vif_failed IFUP_ERROR
+++			json_select ..
+++			return
+++		}
+++	fi
++ 
++ 	case "$mode" in
++ 		mesh)
