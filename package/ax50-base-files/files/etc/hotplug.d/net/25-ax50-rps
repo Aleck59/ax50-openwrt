@@ -1,0 +1,18 @@
+#!/bin/sh
+# Распределение приёма пакетов (RPS) по всем ядрам Linux. Штатный
+# 20-smp-tune пропускает eth0_x/eth1: у сетевых устройств datapath GRX350 нет
+# ссылки device, и весь трафик обрабатывался одним ядром (softirq ~1 ядро).
+[ "$ACTION" = add ] || exit 0
+case "$INTERFACE" in
+eth*|wlan*) ;;
+*) exit 0 ;;
+esac
+
+n="$(grep -c '^processor' /proc/cpuinfo)"
+[ "$n" -gt 1 ] || exit 0
+mask="$(printf %x $(( (1 << n) - 1 )))"
+
+for q in /sys/class/net/"$INTERFACE"/queues/rx-*; do
+	[ -w "$q/rps_cpus" ] && echo "$mask" > "$q/rps_cpus"
+done
+exit 0
