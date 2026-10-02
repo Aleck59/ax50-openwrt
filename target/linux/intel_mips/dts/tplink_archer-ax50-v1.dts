@@ -248,18 +248,3 @@
 &cpu0 {
 	/delete-property/ cpu-supply;
 };
-
-/* CPU3 (второй поток второго ядра) отдан Linux: 4 потока для обработки трафика
- * (RPS, irqbalance). В стоке и в easy350_anywan_axepoint.dts на нём прошивка
- * MPE ("MPEFW"), но без рабочего PPA ускоритель MPE простаивал. */
-&cpu3 {
-	default-OS = "LINUX";
-};
-
-/* У CPU3 нет своего таймера (clockevent GPTC есть только у CPU0-2): ядро
- * поднималось, но CPU3 не получал тиков — RCU stall и зависание загрузки.
- * Таймер 1 GPTC0 (heartbeat для прошивок MPE/voice, их нет) отдаём CPU3
- * как clockevent. Ячейки: <тип таймер cpu>, тип 1 — clockevent. */
-&gptc0 {
-	intel,clk = <&clocksource 1 0 1>, <&clocksource 1 1 3>, <&clocksource 0 2 0>;
-};

@@ -25,8 +25,8 @@ define Device/TPLINK_AX50
   DEVICE_PACKAGES := ax50-base-files \
 	kmod-intel_eth_toe_drv_xrx500 kmod-directconnect-dp kmod-litepath-hwacc \
 	kmod-mac-violation-mirror ltq-gphy-fw-xrx5xx switch_cli_ugw8 \
-	kmod-ppa-drv kmod-ppa-drv-accel kmod-ppa-drv-grx500 \
-	kmod-ppa-drv-stack-al ppacmd \
+	kmod-ppa-drv kmod-ppa-drv-accel kmod-ppa-drv-grx500 kmod-ppa-drv-grx500-mpe \
+	kmod-ppa-drv-mpe-ip97 kmod-ppa-drv-stack-al ppacmd \
 	kmod-eip97 \
 	kmod-iwlwav-driver-uci iwlwav-hostap-uci iwlwav-iw iwlwav-tools \
 	iwlwav-base-files ltq-wlan-wave_6x-uci dwpal_6x-uci swpal_6x-uci iwinfo \

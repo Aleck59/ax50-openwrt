@@ -1,5 +1,5 @@
 #!/bin/sh
-# irqbalance разносит прерывания сети и Wi-Fi по всем 4 потокам процессора
+# irqbalance разносит прерывания сети и Wi-Fi по всем ядрам Linux
 uci -q get irqbalance.irqbalance >/dev/null || exit 0
 uci -q set irqbalance.irqbalance.enabled=1
 uci -q commit irqbalance

@@ -9,7 +9,7 @@ description: Справочник по железу TP-Link Archer AX50 v1 (GRX3
 и прошивка 1.1.2 Build 20251022 (DTB, rootfs, U-Boot). Подробно — `docs/hardware.md`.
 
 - SoC Intel GRX350 (xRX500), MIPS interAptiv **big-endian**, пакеты `mips_24kc_nomips16`.
-- 2 ядра × 2 VPE; все 4 потока у Linux (`&cpu3 { default-OS = "LINUX"; }` в DTS), MPE (ltq_mpe_hal_drv) в образ не входит. Трафик по ядрам: RPS (`hotplug.d/net/25-ax50-rps`) и irqbalance.
+- 2 ядра × 2 VPE: CPU0–2 у Linux, CPU3 — прошивка MPE ("MPEFW", как в стоке). Отдать CPU3 Linux нельзя без своего таймера: в `xrx500.dtsi` clockevent GPTC есть только у CPU0–2, иначе RCU stall и зависание загрузки. Трафик по ядрам Linux: RPS (`hotplug.d/net/25-ax50-rps`) и irqbalance.
 - ОЗУ 256 МБ (`mem=256M@512M`), NAND **128 МБ**, страница 2 КБ, блок 128 КБ.
 - `mtdparts=17c00000.nand-parts:1m(uboot),256k(ubootconfigA),256k(ubootconfigB),256k(gphyfirmware),1m(calibration),124m(system_sw),-(res)` — U-Boot передаёт это ядру.
 - `system_sw` — UBI: `kernelA/rootfsA` (+B), `data_vol` (данные TP-Link), `rootfs_data` (оверлей OpenWrt).
