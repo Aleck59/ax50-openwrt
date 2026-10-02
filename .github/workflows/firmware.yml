@@ -23,9 +23,11 @@ on:
                     '.github/workflows/packages.yml' ]
   workflow_dispatch:
 
+# Новый push не отменяет идущую сборку: следующая ждёт в очереди (в очереди
+# остаётся только последняя).
 concurrency:
   group: firmware-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
