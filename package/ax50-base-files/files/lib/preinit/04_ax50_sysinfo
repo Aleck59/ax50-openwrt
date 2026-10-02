@@ -1,0 +1,15 @@
+#!/bin/sh
+# board_name — compatible из DTS (tplink,archer-ax50-v1), как в OpenWrt.
+# 02_sysinfo записывает именно его, но 03_preinit_board.sh (таргет Intel)
+# перезаписывает board_name моделью «TP-Link Archer AX50 v1», и проверка
+# образа в sysupgrade (supported_devices) не находила устройство.
+
+ax50_sysinfo() {
+	local compat
+	compat="$(strings /proc/device-tree/compatible 2>/dev/null | head -n1)"
+	case "$compat" in
+	tplink,archer-ax50-v1) echo "$compat" > /tmp/sysinfo/board_name ;;
+	esac
+}
+
+boot_hook_add preinit_main ax50_sysinfo

@@ -6,23 +6,24 @@
 # открытых точек доступа с вымышленными MAC 02:9A:96:FB:59:xx. Здесь он
 # заменяется аккуратной конфигурацией по схеме драйвера MaxLinear:
 #
-#   radioN  — радиомодуль; wlan0/wlan2 — служебный «главный» VAP драйвера
-#             (sDisableMasterVap=1, скрытый), сами точки — wlan0.0 и wlan2.0.
+#   radioN  — радиомодуль, точки доступа — wlan0.0 и wlan2.0. Служебный
+#             «главный» VAP драйвера (wlan0/wlan2) в конфигурации не нужен:
+#             его добавляет netifd (патч swpal 03_ax50_auto_master_vap).
 #
-# Радио выключены, как принято в OpenWrt, пока не задан пароль: включите их
-# в LuCI (Сеть → Беспроводная сеть). По умолчанию WPA2/WPA3 (sae-mixed).
+# Точки включены, WPA2/WPA3 (sae-mixed), пароль 12345678 — смените его
+# в LuCI (Сеть → Беспроводная сеть). 5 ГГц — канал 36 (без DFS).
 #
 # MAC-адреса — как в стоке: 2.4 ГГц = base - 1, 5 ГГц = base - 2 (главный VAP);
 # у точек доступа — те же младшие байты с битом локального администрирования
 # в первом октете (разным для двух диапазонов), чтобы не пересекаться
 # ни с заводскими адресами, ни между собой.
 #
-# Если конфигурация уже создана этим скриптом (например, сохранилась при
-# sysupgrade), ничего не делаем.
+# Если конфигурация уже создана этой версией скрипта (ax50_defaults=2),
+# ничего не делаем; версия 1 (с dummy-точками) заменяется.
 
 . /lib/functions/ax50.sh
 
-[ "$(uci -q get wireless.radio0.ax50_defaults)" = 1 ] && exit 0
+[ "$(uci -q get wireless.radio0.ax50_defaults)" = 2 ] && exit 0
 
 base="$(ax50_base_mac)" || base="02:00:00:00:50:00"
 
@@ -44,13 +45,13 @@ touch /etc/config/wireless
 
 uci -q batch <<EOF
 set wireless.radio0=wifi-device
-set wireless.radio0.ax50_defaults='1'
+set wireless.radio0.ax50_defaults='2'
 set wireless.radio0.type='mac80211'
 set wireless.radio0.phy='phy0'
 set wireless.radio0.macaddr='$mac24'
 set wireless.radio0.band='2.4GHz'
-set wireless.radio0.hwmode='11bgnax'
-set wireless.radio0.htmode='HT20'
+set wireless.radio0.hwmode='11g'
+set wireless.radio0.htmode='HE20'
 set wireless.radio0.channel='auto'
 set wireless.radio0.country='RU'
 set wireless.radio0.num_antennas='2'
@@ -58,17 +59,8 @@ set wireless.radio0.beacon_int='100'
 set wireless.radio0.short_gi_20='1'
 set wireless.radio0.short_gi_40='1'
 set wireless.radio0.txpower='100'
-set wireless.radio0.sDisableMasterVap='1'
-set wireless.radio0.disabled='1'
+set wireless.radio0.disabled='0'
 
-set wireless.radio0_master=wifi-iface
-set wireless.radio0_master.device='radio0'
-set wireless.radio0_master.ifname='wlan0'
-set wireless.radio0_master.macaddr='$mac24'
-set wireless.radio0_master.network='lan'
-set wireless.radio0_master.mode='ap'
-set wireless.radio0_master.hidden='1'
-set wireless.radio0_master.ssid='dummy_ssid_0'
 
 set wireless.default_radio0=wifi-iface
 set wireless.default_radio0.device='radio0'
@@ -78,6 +70,7 @@ set wireless.default_radio0.network='lan'
 set wireless.default_radio0.mode='ap'
 set wireless.default_radio0.ssid='AX50-$suffix'
 set wireless.default_radio0.encryption='sae-mixed'
+set wireless.default_radio0.key='12345678'
 set wireless.default_radio0.ieee80211w='1'
 set wireless.default_radio0.wmm='1'
 set wireless.default_radio0.wps_pushbutton='1'
@@ -87,9 +80,9 @@ set wireless.radio2.type='mac80211'
 set wireless.radio2.phy='phy1'
 set wireless.radio2.macaddr='$mac5'
 set wireless.radio2.band='5GHz'
-set wireless.radio2.hwmode='11anacax'
-set wireless.radio2.htmode='VHT80'
-set wireless.radio2.channel='auto'
+set wireless.radio2.hwmode='11a'
+set wireless.radio2.htmode='HE80'
+set wireless.radio2.channel='36'
 set wireless.radio2.country='RU'
 set wireless.radio2.num_antennas='2'
 set wireless.radio2.beacon_int='100'
@@ -97,17 +90,8 @@ set wireless.radio2.doth='1'
 set wireless.radio2.short_gi_20='1'
 set wireless.radio2.short_gi_40='1'
 set wireless.radio2.txpower='100'
-set wireless.radio2.sDisableMasterVap='1'
-set wireless.radio2.disabled='1'
+set wireless.radio2.disabled='0'
 
-set wireless.radio2_master=wifi-iface
-set wireless.radio2_master.device='radio2'
-set wireless.radio2_master.ifname='wlan2'
-set wireless.radio2_master.macaddr='$mac5'
-set wireless.radio2_master.network='lan'
-set wireless.radio2_master.mode='ap'
-set wireless.radio2_master.hidden='1'
-set wireless.radio2_master.ssid='dummy_ssid_2'
 
 set wireless.default_radio2=wifi-iface
 set wireless.default_radio2.device='radio2'
@@ -117,6 +101,7 @@ set wireless.default_radio2.network='lan'
 set wireless.default_radio2.mode='ap'
 set wireless.default_radio2.ssid='AX50-$suffix-5G'
 set wireless.default_radio2.encryption='sae-mixed'
+set wireless.default_radio2.key='12345678'
 set wireless.default_radio2.ieee80211w='1'
 set wireless.default_radio2.wmm='1'
 set wireless.default_radio2.wps_pushbutton='1'

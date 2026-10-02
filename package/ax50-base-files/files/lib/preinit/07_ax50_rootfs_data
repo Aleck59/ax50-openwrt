@@ -6,7 +6,7 @@
 
 ax50_create_rootfs_data() {
 	case "$(cat /tmp/sysinfo/board_name 2>/dev/null)" in
-	"TP-Link Archer AX50"*) ;;
+	tplink,archer-ax50-v1) ;;
 	*) return 0 ;;
 	esac
 	ubinfo /dev/ubi0 --name=rootfs_data >/dev/null 2>&1 && return 0

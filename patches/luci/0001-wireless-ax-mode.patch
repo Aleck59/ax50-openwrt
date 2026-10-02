@@ -1,0 +1,54 @@
+luci-mod-network: режим AX (802.11ax, HE20…HE160) в настройках Wi-Fi
+
+LuCI 19.07 знает только N/AC, а iwinfo 19.07 — только hwmodes до ac. Для
+WAV600 (AX50) добавлен режим AX; htmode HEnn переводится в параметры
+hostapd в swpal (patches/feed_wlan_6x/0005).
+
+--- a/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
++++ b/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
+@@ -318,7 +318,9 @@
+ 			this.modes = [
+ 				'', 'Legacy', true,
+ 				'n', 'N', hwmodelist.n,
+-				'ac', 'AC', hwmodelist.ac
++				'ac', 'AC', hwmodelist.ac,
++				/* ax50-openwrt: iwinfo 19.07 не знает 802.11ax, а WAV600 умеет */
++				'ax', 'AX', hwmodelist.n || hwmodelist.ac
+ 			];
+ 
+ 			var htmodelist = L.toArray(data[0] ? data[0].getHTModes() : null)
+@@ -335,6 +337,12 @@
+ 					'VHT40', '40 MHz', htmodelist.VHT40,
+ 					'VHT80', '80 MHz', htmodelist.VHT80,
+ 					'VHT160', '160 MHz', htmodelist.VHT160
++				],
++				'ax': [
++					'HE20', '20 MHz', htmodelist.HT20 || htmodelist.VHT20,
++					'HE40', '40 MHz', htmodelist.HT40 || htmodelist.VHT40,
++					'HE80', '80 MHz', htmodelist.VHT80,
++					'HE160', '160 MHz', htmodelist.VHT160
+ 				]
+ 			};
+ 
+@@ -349,6 +357,10 @@
+ 				],
+ 				'ac': [
+ 					'11a', '5 GHz', true
++				],
++				'ax': [
++					'11g', '2.4 GHz', this.channels['11g'].length > 3,
++					'11a', '5 GHz', this.channels['11a'].length > 3
+ 				]
+ 			};
+ 		}, this));
+@@ -410,7 +422,9 @@
+ 
+ 		this.setValues(mode, this.modes);
+ 
+-		if (/VHT20|VHT40|VHT80|VHT160/.test(htval))
++		if (/^HE(20|40|80|160)$/.test(htval))
++			mode.value = 'ax';
++		else if (/VHT20|VHT40|VHT80|VHT160/.test(htval))
+ 			mode.value = 'ac';
+ 		else if (/HT20|HT40/.test(htval))
+ 			mode.value = 'n';

@@ -12,8 +12,8 @@
 . /lib/functions/lantiq.sh
 . /lib/functions/ax50.sh
 
-case "$(lantiq_board_name)" in
-"TP-Link Archer AX50"*) ;;
+case "$(board_name)" in
+tplink,archer-ax50-v1) ;;
 *) exit 0 ;;
 esac
 

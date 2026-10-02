@@ -1,0 +1,92 @@
+swpal: главный VAP без записи в конфигурации, режимы n/ac/ax из htmode
+
+1. Служебный главный VAP драйвера (wlanN) добавляется в hostapd
+   автоматически, если первая точка в /etc/config/wireless — wlanN.M:
+   в настройках и LuCI больше нет точек dummy_ssid_N.
+2. hwmode в UCI с префиксом «11» (11bgnax/11anacax) и «11a/11g» из LuCI не
+   совпадали ни с одним вариантом — радио работало без n/ac/ax. Префикс
+   отбрасывается, режим берётся из htmode (HT* — n, VHT* — ac, HE* — ax,
+   режим AX добавлен в LuCI патчем patches/luci/0001).
+
+--- /dev/null
++++ b/wlan_wave_feed/swpal_6x-uci/patches/03_ax50_master_vap_and_modes.patch
+@@ -0,0 +1,79 @@
++--- a/files/scripts/lib/netifd/wireless/mac80211.sh
+++++ b/files/scripts/lib/netifd/wireless/mac80211.sh
++@@ -299,6 +299,33 @@
++ 
++ 	json_get_values ht_capab
++ 
+++	# ax50-openwrt: hwmode в UCI пишется с префиксом «11» (11bgnax, 11anacax),
+++	# а LuCI сохраняет просто 11a/11g и задаёт режим через htmode
+++	# (HT* — n, VHT* — ac, HE* — ax). Без этого ни один вариант ниже не
+++	# совпадал и радио работало в устаревшем режиме a/g.
+++	hwmode="${hwmode#11}"
+++	case "$htmode" in
+++		HE*)
+++			case "$hwmode" in
+++				a) hwmode=anacax; htmode="VHT${htmode#HE}" ;;
+++				*)
+++					hwmode=bgnax
+++					case "$htmode" in
+++						HE20) htmode=HT20 ;;
+++						*) htmode=HT40 ;;
+++					esac
+++				;;
+++			esac
+++		;;
+++		VHT*) [ "$hwmode" = a ] && hwmode=anac ;;
+++		HT*)
+++			case "$hwmode" in
+++				a) hwmode=an ;;
+++				g|b) hwmode=bgn ;;
+++			esac
+++		;;
+++	esac
+++
++ 	ieee80211n=
++ 	ieee80211ac=
++ 	ieee80211ax=
++@@ -730,6 +757,34 @@
++ 	has_ap=1
++ }
++ 
+++# ax50-openwrt: служебный «главный» VAP драйвера MaxLinear (wlanN) нужен
+++# hostapd первым интерфейсом (interface=wlanN, точки доступа — bss=wlanN.M).
+++# Если в /etc/config/wireless его нет и первая точка — wlanN.M, главный VAP
+++# добавляется здесь скрытым и без шифрования, как его настраивал prplMesh
+++# (dummy_ssid_N), — в настройках и LuCI он больше не виден.
+++mac80211_auto_master_vap() {
+++	local vap="$1" master
+++
+++	case "$vap" in
+++		wlan*.*) ;;
+++		*) return 1 ;;
+++	esac
+++	master="${vap%%.*}"
+++	[ -e "/sys/class/net/$master" ] || return 1
+++
+++	cat >> /var/run/hostapd-$phy.conf <<EOF2
+++interface=$master
+++ctrl_interface=/var/run/hostapd
+++ssid=$master
+++ignore_broadcast_ssid=1
+++auth_algs=1
+++wpa=0
+++bssid=$(cat /sys/class/net/$master/address)
+++
+++EOF2
+++	hostapd_ctrl="/var/run/hostapd/$master"
+++}
+++
++ mac80211_prepare_vif() {
++ 	json_select config
++ 
++@@ -761,6 +816,7 @@
++ 		ap)
++ 			# Hostapd will handle recreating the interface and
++ 			# subsequent virtual APs belonging to the same PHY
+++			[ -n "$hostapd_ctrl" ] || mac80211_auto_master_vap "$ifname"
++ 			if [ -n "$hostapd_ctrl" ]; then
++ 				type=bss
++ 			else
