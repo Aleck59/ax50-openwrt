@@ -10,7 +10,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 
 --- /dev/null
 +++ b/wlan_wave_feed/swpal_6x-uci/patches/03_ax50_master_vap_and_modes.patch
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,82 @@
 +--- a/files/scripts/lib/netifd/wireless/mac80211.sh
 ++++ b/files/scripts/lib/netifd/wireless/mac80211.sh
 +@@ -299,6 +299,33 @@
@@ -47,7 +47,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 + 	ieee80211n=
 + 	ieee80211ac=
 + 	ieee80211ax=
-+@@ -730,6 +757,34 @@
++@@ -730,6 +757,37 @@
 + 	has_ap=1
 + }
 + 
@@ -64,7 +64,10 @@ swpal: главный VAP без записи в конфигурации, ре�
 ++		*) return 1 ;;
 ++	esac
 ++	master="${vap%%.*}"
-++	[ -e "/sys/class/net/$master" ] || return 1
+++	# После остановки hostapd драйвер удаляет главный netdev — создаём его
+++	# так же, как это делалось для записи wlanN в конфигурации
+++	[ -e "/sys/class/net/$master" ] || \
+++		iw phy "$phy" interface add "$master" type __ap || return 1
 ++
 ++	cat >> /var/run/hostapd-$phy.conf <<EOF2
 ++interface=$master
@@ -82,7 +85,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 + mac80211_prepare_vif() {
 + 	json_select config
 + 
-+@@ -761,6 +816,7 @@
++@@ -761,6 +819,7 @@
 + 		ap)
 + 			# Hostapd will handle recreating the interface and
 + 			# subsequent virtual APs belonging to the same PHY
