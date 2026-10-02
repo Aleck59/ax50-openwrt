@@ -1,8 +1,8 @@
 #!/bin/sh
-# PPA: туннели WAN (PPPoE, L2TP) появляются позже /etc/init.d/ax50-ppa.
+# PPA: точки Wi-Fi и туннели WAN появляются позже /etc/init.d/ax50-ppa.
 [ -e /var/run/ax50-ppa ] || exit 0
 [ "$ACTION" = add ] || exit 0
 case "$INTERFACE" in
-pppoe-*|l2tp-*) ppacmd addwan -i "$INTERFACE" >/dev/null 2>&1 ;;
+wlan*|pppoe-*|l2tp-*) /usr/libexec/ax50-ppa register ;;
 esac
 exit 0

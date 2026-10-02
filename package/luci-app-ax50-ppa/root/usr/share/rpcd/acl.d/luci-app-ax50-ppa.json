@@ -1,0 +1,17 @@
+{
+	"luci-app-ax50-ppa": {
+		"description": "Grant access to PPA hardware acceleration settings",
+		"read": {
+			"file": {
+				"/usr/libexec/ax50-ppa status": [ "exec" ]
+			},
+			"uci": [ "ppa" ]
+		},
+		"write": {
+			"file": {
+				"/usr/libexec/ax50-ppa restart": [ "exec" ]
+			},
+			"uci": [ "ppa" ]
+		}
+	}
+}

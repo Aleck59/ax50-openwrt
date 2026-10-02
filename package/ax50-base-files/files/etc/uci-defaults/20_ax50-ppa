@@ -1,6 +1,27 @@
 #!/bin/sh
-# PPA пока выключен: сессии уходят в программный путь (SWAC), а не в PAE, и
-# маршрутизация медленнее, чем без PPA (230 против 330 Мбит/с). Включить для
-# проверки: /etc/init.d/ax50-ppa enable && /etc/init.d/ax50-ppa start
-/etc/init.d/ax50-ppa disable
+# Настройки PPA по умолчанию: ускорение выключено (включается в LuCI,
+# «Сеть → Аппаратное ускорение»), интерфейсы — как в стоке AX50.
+[ -s /etc/config/ppa ] || {
+	touch /etc/config/ppa
+	uci -q batch <<-EOT
+		set ppa.global=ppa
+		set ppa.global.enabled=0
+		set ppa.global.threshold=3
+		set ppa.global.pae=1
+		set ppa.global.mpe=1
+		set ppa.global.hwfp=1
+		set ppa.global.swfp=1
+		set ppa.global.wlan=1
+		set ppa.global.tunnels=1
+		add_list ppa.global.lan=br-lan
+		add_list ppa.global.lan=eth0_1
+		add_list ppa.global.lan=eth0_2
+		add_list ppa.global.lan=eth0_3
+		add_list ppa.global.lan=eth0_4
+		add_list ppa.global.wan=eth1
+		commit ppa
+	EOT
+}
+# служба всегда в автозагрузке, включение — option enabled
+/etc/init.d/ax50-ppa enable
 exit 0

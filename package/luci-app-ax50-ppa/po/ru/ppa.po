@@ -1,0 +1,74 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Hardware acceleration"
+msgstr "Аппаратное ускорение"
+
+msgid "Grant access to PPA hardware acceleration settings"
+msgstr "Доступ к настройкам аппаратного ускорения PPA"
+
+msgid "Packet Processing Accelerator of the GRX350: established connections are moved to the switch engine (PAE) and the MPE firmware on the 4th CPU thread, bypassing the CPU. Accelerated traffic bypasses iptables, SQM and traffic counters."
+msgstr "Ускоритель пакетов PPA процессора GRX350: установленные соединения переносятся в движок коммутатора (PAE) и прошивку MPE на 4-м потоке процессора, мимо CPU. Ускоренный трафик идёт в обход iptables, SQM и счётчиков трафика."
+
+msgid "Enable acceleration"
+msgstr "Включить ускорение"
+
+msgid "Packet threshold"
+msgstr "Порог пакетов"
+
+msgid "A connection is accelerated after this many packets (stock firmware: 3)."
+msgstr "Соединение передаётся ускорителю после этого числа пакетов (в стоке: 3)."
+
+msgid "PAE engine"
+msgstr "Движок PAE"
+
+msgid "Hardware routing and NAT in the switch."
+msgstr "Аппаратная маршрутизация и NAT в коммутаторе."
+
+msgid "MPE engine"
+msgstr "Движок MPE"
+
+msgid "Acceleration firmware on CPU3."
+msgstr "Прошивка ускорителя на CPU3."
+
+msgid "Hardware fast path"
+msgstr "Аппаратный быстрый путь"
+
+msgid "Software fast path"
+msgstr "Программный быстрый путь"
+
+msgid "LAN interfaces"
+msgstr "Интерфейсы LAN"
+
+msgid "Stock firmware: br-lan, eth0_1…eth0_4."
+msgstr "В стоке: br-lan, eth0_1…eth0_4."
+
+msgid "Wi-Fi access points"
+msgstr "Точки доступа Wi-Fi"
+
+msgid "Add all wlan* interfaces to LAN."
+msgstr "Добавлять все интерфейсы wlan* в LAN."
+
+msgid "WAN interfaces"
+msgstr "Интерфейсы WAN"
+
+msgid "Stock firmware: eth1."
+msgstr "В стоке: eth1."
+
+msgid "PPPoE and L2TP"
+msgstr "PPPoE и L2TP"
+
+msgid "Add pppoe-* and l2tp-* interfaces to WAN."
+msgstr "Добавлять интерфейсы pppoe-* и l2tp-* в WAN."
+
+msgid "Acceleration"
+msgstr "Ускорение"
+
+msgid "enabled"
+msgstr "включено"
+
+msgid "disabled"
+msgstr "выключено"
+
+msgid "Restart acceleration"
+msgstr "Перезапустить ускорение"

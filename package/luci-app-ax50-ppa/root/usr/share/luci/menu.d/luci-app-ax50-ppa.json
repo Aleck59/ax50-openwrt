@@ -1,0 +1,13 @@
+{
+	"admin/network/ppa": {
+		"title": "Hardware acceleration",
+		"order": 90,
+		"action": {
+			"type": "view",
+			"path": "ppa"
+		},
+		"depends": {
+			"acl": [ "luci-app-ax50-ppa" ]
+		}
+	}
+}

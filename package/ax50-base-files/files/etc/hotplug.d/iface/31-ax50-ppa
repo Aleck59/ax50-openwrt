@@ -1,0 +1,5 @@
+#!/bin/sh
+# PPA: как config_ppa в стоке — после подъёма интерфейса зарегистрировать заново
+[ -e /var/run/ax50-ppa ] || exit 0
+[ "$ACTION" = ifup ] && /usr/libexec/ax50-ppa register
+exit 0
