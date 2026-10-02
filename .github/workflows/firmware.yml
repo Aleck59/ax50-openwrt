@@ -138,9 +138,11 @@ jobs:
           } | sha256sum | cut -c1-40)
           echo "toolchain=toolchain-${{ runner.os }}-$sum" >> "$GITHUB_OUTPUT"
 
+      # restore/save раздельно: кэш сохраняется сразу после сборки тулчейна,
+      # а не в конце job — падение сборки пакетов его не теряет
       - name: Кэш хост-утилит и тулчейна
         id: tc-cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           # stamp сборки tools в 19.07 лежит в staging_dir/target-*/stamp
           path: |
@@ -180,6 +182,16 @@ jobs:
         run: |
           scripts/docker.sh scripts/build.sh tools/install toolchain/install \
             || scripts/docker.sh bash -c 'cd build/prplwrt && make -j1 V=s tools/install toolchain/install'
+
+      - name: Сохранение тулчейна в кэш
+        if: steps.tc-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            build/prplwrt/staging_dir/host
+            build/prplwrt/staging_dir/toolchain-*
+            build/prplwrt/staging_dir/target-*/stamp/.tools_compile_*
+          key: ${{ steps.keys.outputs.toolchain }}
 
       - name: Сборка
         id: build
