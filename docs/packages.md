@@ -69,6 +69,23 @@ connbytes, ipset — модули ядра входят в образ.
 HomeProxy (sing-box) в прошивку не входит: ему нужны OpenWrt 23.05+, firewall4/nftables,
 ucode и ядро не старше 4.18 с `nft_tproxy` — в prplWrt 19.07 с ядром 4.9 этого нет.
 
+## Сеть и удалённый доступ
+
+- **SQM** (`luci-app-sqm`, «Сеть → SQM QoS») — борьба с ростом задержек под нагрузкой
+  (cake). Ограничиваемый трафик идёт через процессор, мимо аппаратного ускорения PPA,
+  поэтому скорость выше ~300–400 Мбит/с с SQM не получить.
+- **WireGuard** (`luci-proto-wireguard`, `luci-app-wireguard`) — VPN: интерфейс
+  создаётся в «Сеть → Интерфейсы» (протокол WireGuard VPN).
+- **DDNS** (`luci-app-ddns`, «Службы → Динамический DNS») — доступ по имени при
+  меняющемся внешнем IP.
+- **ZeroTier** (`zerotier`) — доступ к домашней сети без белого IP. Страницы LuCI
+  для него в 19.07 нет, настройка в `/etc/config/zerotier`:
+  ```sh
+  uci set zerotier.sample_config.enabled=1
+  uci add_list zerotier.sample_config.join=<ID сети>
+  uci commit zerotier && /etc/init.d/zerotier restart
+  ```
+
 ## Фид пакетов
 
 `opkg update && opkg install <пакет>` работает сразу — адрес фида встроен в прошивку
