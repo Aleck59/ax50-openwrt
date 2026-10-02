@@ -1,0 +1,32 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "ZeroTier"
+msgstr "ZeroTier"
+
+msgid "Grant access to ZeroTier settings"
+msgstr "Доступ к настройкам ZeroTier"
+
+msgid "Access to the home network without a public IP. Join a network by its ID (my.zerotier.com), then authorize this router in the network settings. Interfaces zt* are in the firewall zone \"zerotier\" with access to LAN."
+msgstr "Доступ к домашней сети без белого IP. Укажите ID сети (my.zerotier.com), затем разрешите (Auth) этот роутер в настройках сети. Интерфейсы zt* — в зоне межсетевого экрана «zerotier» с доступом в LAN."
+
+msgid "Enable"
+msgstr "Включить"
+
+msgid "Networks"
+msgstr "Сети"
+
+msgid "16-digit network ID."
+msgstr "16-значный ID сети."
+
+msgid "Port"
+msgstr "Порт"
+
+msgid "UDP port, default 9993."
+msgstr "Порт UDP, по умолчанию 9993."
+
+msgid "Status"
+msgstr "Состояние"
+
+msgid "ZeroTier is not running."
+msgstr "ZeroTier не запущен."

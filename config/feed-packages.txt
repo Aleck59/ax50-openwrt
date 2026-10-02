@@ -13,7 +13,7 @@ zapret
 luci-app-zapret
 luci-app-ax50-temperature
 luci-app-ax50-ppa
-luci-app-netdata
+luci-app-zerotier
 luci-app-traffic
 luci-theme-footstrap
 ax50-base-files

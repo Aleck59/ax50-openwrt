@@ -63,11 +63,9 @@ connbytes, ipset — модули ядра входят в образ.
   PPPoE — `pppoe-wan`), база в `/etc/vnstat` сохраняется раз в 30 минут и переживает
   перезагрузку. Порт [luci-app-traffic](https://github.com/HanHan666666/luci-app-traffic)
   на LuCI 19.07.
-- **Статус → Netdata** (`luci-app-netdata`) — панель Netdata 1.30 (порт 19999) во
-  фрейме, кнопки запуска и остановки. Netdata занимает около 30 МБ ОЗУ.
 
 HomeProxy (sing-box) в прошивку не входит: ему нужны OpenWrt 23.05+, firewall4/nftables,
-ucode и ядро не старше 4.18 с `nft_tproxy` — в prplWrt 19.07 с ядром 4.9 этого нет.
+ucode и ядро 4.18 или новее с `nft_tproxy` — в prplWrt 19.07 с ядром 4.9 этого нет.
 
 ## Сеть и удалённый доступ
 
@@ -78,13 +76,10 @@ ucode и ядро не старше 4.18 с `nft_tproxy` — в prplWrt 19.07 с
   создаётся в «Сеть → Интерфейсы» (протокол WireGuard VPN).
 - **DDNS** (`luci-app-ddns`, «Службы → Динамический DNS») — доступ по имени при
   меняющемся внешнем IP.
-- **ZeroTier** (`zerotier`) — доступ к домашней сети без белого IP. Страницы LuCI
-  для него в 19.07 нет, настройка в `/etc/config/zerotier`:
-  ```sh
-  uci set zerotier.sample_config.enabled=1
-  uci add_list zerotier.sample_config.join=<ID сети>
-  uci commit zerotier && /etc/init.d/zerotier restart
-  ```
+- **ZeroTier** (`luci-app-zerotier`, «Службы → ZeroTier») — доступ к домашней сети без
+  белого IP: включение, ID сетей, порт и состояние узла. Интерфейсы `zt*` в зоне
+  межсетевого экрана `zerotier` с доступом в LAN и из LAN. После подключения разрешите
+  роутер (Auth) в настройках сети на my.zerotier.com.
 
 ## Фид пакетов
 

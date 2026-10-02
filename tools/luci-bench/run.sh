@@ -74,7 +74,7 @@ apps)
 	out="$WORK/apps"; rm -rf "$out"
 	mkdir -p "$out/www/luci-static/resources/view" "$out/usr/lib/lua/luci/i18n" "$out/etc/config" \
 		"$out/etc/init.d" "$out/opt/zapret/ipset" "$out/usr/bin" "$out/usr/share"
-	for a in luci-app-adguardhome luci-app-zapret luci-app-traffic luci-app-netdata luci-app-ax50-temperature luci-app-ax50-ppa; do
+	for a in luci-app-adguardhome luci-app-zapret luci-app-traffic luci-app-ax50-temperature luci-app-ax50-ppa luci-app-zerotier; do
 		cp -R "$REPO/package/$a/htdocs/." "$out/www/"
 		cp -R "$REPO/package/$a/root/usr/." "$out/usr/"
 		for po in "$REPO/package/$a"/po/ru/*.po; do
@@ -87,11 +87,11 @@ apps)
 	printf '#!/bin/sh\necho "AdGuard Home, version v0.0.0-bench"\n' > "$out/usr/bin/AdGuardHome"
 	printf '#!/bin/sh\ncase "$1" in enabled) exit 0;; *) echo "$0 $1";; esac\n' > "$out/etc/init.d/zapret"
 	cp "$out/etc/init.d/zapret" "$out/etc/init.d/adguardhome"
-	cp "$out/etc/init.d/zapret" "$out/etc/init.d/netdata"
 	cp "$HERE/vnstat-stub" "$out/usr/bin/vnstat"
 	mkdir -p "$out/usr/libexec"
 	printf '#!/bin/sh\ncase "$1" in status) printf "state: on\\n--- LAN\\nbr-lan\\n--- WAN\\neth1\\n";; esac\n' > "$out/usr/libexec/ax50-ppa"
 	chmod +x "$out/usr/libexec/ax50-ppa"
+	printf "config zerotier 'sample_config'\n\toption enabled '0'\n" > "$out/etc/config/zerotier"
 	printf "config ppa 'global'\n\toption enabled '0'\n\toption threshold '3'\n\tlist lan 'br-lan'\n\tlist wan 'eth1'\n" > "$out/etc/config/ppa"
 	chmod +x "$out/usr/bin/AdGuardHome" "$out/usr/bin/vnstat" "$out"/etc/init.d/*
 	docker cp "$out/." luci-bench:/

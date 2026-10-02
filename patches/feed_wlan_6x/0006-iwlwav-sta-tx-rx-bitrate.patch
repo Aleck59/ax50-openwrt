@@ -1,0 +1,45 @@
+iwlwav: скорость TX/RX клиента в статистике станции
+
+Rate control у WAV600 в прошивке, драйвер не заполнял
+NL80211_STA_INFO_TX/RX_BITRATE, и mac80211 отдавал свою скорость
+(1 Мбит/с, 20 МГц) — LuCI и iwinfo показывали её. Теперь берутся
+LastDataDownlinkRate/LastDataUplinkRate драйвера и ширина канала.
+
+--- a/wlan_wave_feed/iwlwav-driver-uci/patches/020-ax50-sta-tx-rx-bitrate.patch
++++ b/wlan_wave_feed/iwlwav-driver-uci/patches/020-ax50-sta-tx-rx-bitrate.patch
+@@ -0,0 +1,35 @@
++--- a/drivers/net/wireless/intel/iwlwav/wireless/driver/mac80211.c
+++++ b/drivers/net/wireless/intel/iwlwav/wireless/driver/mac80211.c
++@@ -4692,6 +4692,32 @@
++     sinfo->tx_failed = sta_stats->ErrorsSent;
++     sinfo->filled |= BIT(NL80211_STA_INFO_TX_FAILED);
++ 
+++    /* ax50-openwrt: скорость передачи/приёма для iwinfo и LuCI. Rate control
+++     * работает в прошивке, mac80211 о скорости не знает и отдавал бы 1 Мбит/с.
+++     * Скорости драйвера в кбит/с, rate_info.legacy — в 100 кбит/с; ширина —
+++     * ширина канала точки доступа. */
+++    {
+++      struct rate_info ri;
+++      memset(&ri, 0, sizeof(ri));
+++      switch (vif->bss_conf.chandef.width) {
+++      case NL80211_CHAN_WIDTH_40:    ri.bw = RATE_INFO_BW_40;  break;
+++      case NL80211_CHAN_WIDTH_80:    ri.bw = RATE_INFO_BW_80;  break;
+++      case NL80211_CHAN_WIDTH_80P80:
+++      case NL80211_CHAN_WIDTH_160:   ri.bw = RATE_INFO_BW_160; break;
+++      default:                       ri.bw = RATE_INFO_BW_20;  break;
+++      }
+++      if (sta_stats->LastDataDownlinkRate) {
+++        sinfo->txrate = ri;
+++        sinfo->txrate.legacy = min_t(uint32, sta_stats->LastDataDownlinkRate / 100, 0xffff);
+++        sinfo->filled |= BIT(NL80211_STA_INFO_TX_BITRATE);
+++      }
+++      if (sta_stats->LastDataUplinkRate) {
+++        sinfo->rxrate = ri;
+++        sinfo->rxrate.legacy = min_t(uint32, sta_stats->LastDataUplinkRate / 100, 0xffff);
+++        sinfo->filled |= BIT(NL80211_STA_INFO_RX_BITRATE);
+++      }
+++    }
+++
++   MTLK_CLPB_FINALLY(res)
++     mtlk_clpb_delete(clpb);
++   MTLK_CLPB_END;

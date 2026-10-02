@@ -1,0 +1,15 @@
+{
+	"luci-app-zerotier": {
+		"description": "Grant access to ZeroTier settings",
+		"read": {
+			"file": {
+				"/usr/bin/zerotier-cli info": [ "exec" ],
+				"/usr/bin/zerotier-cli listnetworks": [ "exec" ]
+			},
+			"uci": [ "zerotier" ]
+		},
+		"write": {
+			"uci": [ "zerotier" ]
+		}
+	}
+}
