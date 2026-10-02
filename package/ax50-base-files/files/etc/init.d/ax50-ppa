@@ -3,7 +3,8 @@
 # Модули ppa_api/ltq_pae_hal/ltq_mpe_hal_drv грузятся при старте, но само
 # ускорение включает только `ppacmd init` и регистрация интерфейсов — в стоке
 # это делала UGW, в prplWrt этого нет, и весь трафик шёл через процессор.
-# Отключить: /etc/init.d/ax50-ppa stop; /etc/init.d/ax50-ppa disable
+# По умолчанию выключен (uci-defaults/20_ax50-ppa): аппаратный PAE пока не
+# подхватывает сессии. Включить: /etc/init.d/ax50-ppa enable; ... start
 
 START=21
 STOP=89

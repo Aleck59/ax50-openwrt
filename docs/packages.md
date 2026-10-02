@@ -108,7 +108,7 @@ libc и ядра. Ставьте только из встроенного фид
 - Светодиод «Интернет»: нет кабеля в WAN — не горит, кабель есть, но нет подключения —
   оранжевый, есть подключение (маршрут по умолчанию через PPPoE, L2TP, DHCP или static) —
   синий; при передаче данных светодиод мигает (триггер netdev).
-- Аппаратное ускорение маршрутизации LAN↔WAN (PPA: PAE, MPE) включает
-  `/etc/init.d/ax50-ppa`; проверка — `ppacmd getversion`, `ppacmd getlan`,
-  `ppacmd getwan`, сессии — `ppacmd getsessions`. Ускоренные соединения идут мимо
-  iptables и SQM; выключить — `/etc/init.d/ax50-ppa stop && /etc/init.d/ax50-ppa disable`.
+- Аппаратное ускорение маршрутизации LAN↔WAN (PPA) пока **выключено**: сессии не
+  попадают в аппаратный PAE, и с PPA маршрутизация медленнее (~230 против ~330 Мбит/с).
+  Для экспериментов: `/etc/init.d/ax50-ppa enable && /etc/init.d/ax50-ppa start`;
+  состояние — `ppacmd summary`, `ppacmd getwansessions`.

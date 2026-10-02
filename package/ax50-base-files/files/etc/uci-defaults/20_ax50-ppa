@@ -1,0 +1,6 @@
+#!/bin/sh
+# PPA пока выключен: сессии уходят в программный путь (SWAC), а не в PAE, и
+# маршрутизация медленнее, чем без PPA (230 против 330 Мбит/с). Включить для
+# проверки: /etc/init.d/ax50-ppa enable && /etc/init.d/ax50-ppa start
+/etc/init.d/ax50-ppa disable
+exit 0
