@@ -1,0 +1,14 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Temperature"
+msgstr "Температура"
+
+msgid "Processor"
+msgstr "Процессор"
+
+msgid "Wi-Fi %s GHz"
+msgstr "Wi-Fi %s ГГц"
+
+msgid "Grant access to temperature sensors"
+msgstr "Доступ к датчикам температуры"

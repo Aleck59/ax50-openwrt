@@ -1,0 +1,10 @@
+{
+	"luci-app-ax50-temperature": {
+		"description": "Grant access to temperature sensors",
+		"read": {
+			"file": {
+				"/usr/libexec/ax50-temperature": [ "exec" ]
+			}
+		}
+	}
+}

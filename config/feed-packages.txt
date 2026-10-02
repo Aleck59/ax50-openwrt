@@ -11,6 +11,7 @@ adguardhome
 luci-app-adguardhome
 zapret
 luci-app-zapret
+luci-app-ax50-temperature
 luci-theme-footstrap
 ax50-base-files
 

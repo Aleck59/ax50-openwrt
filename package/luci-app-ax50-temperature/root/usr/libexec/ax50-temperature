@@ -1,0 +1,46 @@
+#!/bin/sh
+# Температуры для LuCI (JSON, °C):
+#   cpu  — термозоны ядра (датчик GRX350, драйвер ltq_thermal);
+#   wifi — радиомодули WAV600: iw … iwlwav gTemperature (по значению на
+#          группу антенн, берётся максимум).
+
+. /usr/share/libubox/jshn.sh
+
+json_init
+
+json_add_array cpu
+for z in /sys/class/thermal/thermal_zone*; do
+	[ -r "$z/temp" ] || continue
+	t="$(cat "$z/temp" 2>/dev/null)"
+	case "$t" in ''|*[!0-9-]*) continue ;; esac
+	json_add_object
+	json_add_string name "$(cat "$z/type" 2>/dev/null)"
+	json_add_double temp "$(awk "BEGIN{printf \"%.1f\", $t/1000}")"
+	json_close_object
+done
+json_close_array
+
+json_add_array wifi
+for dev in /sys/class/net/wlan[0-9]; do
+	dev="${dev##*/}"
+	[ -e "/sys/class/net/$dev/phy80211" ] || continue
+	out="$(iw dev "$dev" iwlwav gTemperature 2>/dev/null)" || continue
+	max=""
+	for v in ${out#*:}; do
+		case "$v" in ''|*[!0-9]*) continue ;; esac
+		[ "$v" -gt 0 ] && [ "$v" -lt 150 ] || continue
+		[ -z "$max" ] || [ "$v" -gt "$max" ] && max="$v"
+	done
+	[ -n "$max" ] || continue
+	band=2.4
+	freq="$(iw dev "$dev" info 2>/dev/null | sed -n 's/.*(\([0-9]*\) MHz).*/\1/p' | head -n1)"
+	[ -n "$freq" ] && [ "$freq" -gt 4000 ] && band=5
+	json_add_object
+	json_add_string name "$dev"
+	json_add_string band "$band"
+	json_add_int temp "$max"
+	json_close_object
+done
+json_close_array
+
+json_dump
