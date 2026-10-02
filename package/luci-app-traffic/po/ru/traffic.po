@@ -1,0 +1,71 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Traffic"
+msgstr "Трафик"
+
+msgid "Grant access to traffic statistics"
+msgstr "Доступ к статистике трафика"
+
+msgid "RX"
+msgstr "Приём"
+
+msgid "TX"
+msgstr "Передача"
+
+msgid "No data yet"
+msgstr "Данных пока нет"
+
+msgid "%d days of data so far, the chart fills up to 30 days over time"
+msgstr "Данные за %d дн., график заполнится до 30 дней со временем"
+
+msgid "No hourly data yet"
+msgstr "Почасовых данных пока нет"
+
+msgid "No hourly data for today yet"
+msgstr "За сегодня почасовых данных пока нет"
+
+msgid "No monthly data yet"
+msgstr "Помесячных данных пока нет"
+
+msgid "vnstat data is not available: %s"
+msgstr "Данные vnstat недоступны: %s"
+
+msgid "Interface"
+msgstr "Интерфейс"
+
+msgid "Last 30 days"
+msgstr "Последние 30 дней"
+
+msgid "Today by hour"
+msgstr "Сегодня по часам"
+
+msgid "Monthly usage"
+msgstr "По месяцам"
+
+msgid "Current rate"
+msgstr "Текущая скорость"
+
+msgid "Measuring…"
+msgstr "Измерение…"
+
+msgid "No data for %s yet (vnstat has not counted it)"
+msgstr "Для %s данных пока нет (vnstat ещё не учёл)"
+
+msgid "Today"
+msgstr "Сегодня"
+
+msgid "This month"
+msgstr "Этот месяц"
+
+msgid "Yesterday"
+msgstr "Вчера"
+
+msgid "Last month"
+msgstr "Прошлый месяц"
+
+msgid "No counters for %s"
+msgstr "Нет счётчиков для %s"
+
+msgid "Read error"
+msgstr "Ошибка чтения"

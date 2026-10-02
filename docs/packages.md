@@ -56,6 +56,19 @@ Wi-Fi выключен до первой настройки (как принят
 OpenWrt 19.07 работает на iptables (fw3), поэтому используется режим iptables: NFQUEUE,
 connbytes, ipset — модули ядра входят в образ.
 
+## Мониторинг
+
+- **Статус → Трафик** (`luci-app-traffic`) — трафик WAN за сегодня, вчера, месяц,
+  график за 30 дней, по часам и текущая скорость. Данные — `vnstat` (учёт `eth1`, при
+  PPPoE — `pppoe-wan`), база в `/etc/vnstat` сохраняется раз в 30 минут и переживает
+  перезагрузку. Порт [luci-app-traffic](https://github.com/HanHan666666/luci-app-traffic)
+  на LuCI 19.07.
+- **Статус → Netdata** (`luci-app-netdata`) — панель Netdata 1.30 (порт 19999) во
+  фрейме, кнопки запуска и остановки. Netdata занимает около 30 МБ ОЗУ.
+
+HomeProxy (sing-box) в прошивку не входит: ему нужны OpenWrt 23.05+, firewall4/nftables,
+ucode и ядро не старше 4.18 с `nft_tproxy` — в prplWrt 19.07 с ядром 4.9 этого нет.
+
 ## Фид пакетов
 
 `opkg update && opkg install <пакет>` работает сразу — адрес фида встроен в прошивку

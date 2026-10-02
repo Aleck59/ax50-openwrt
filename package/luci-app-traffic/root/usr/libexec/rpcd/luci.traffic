@@ -1,0 +1,26 @@
+#!/bin/sh
+# rpcd-плагин luci.traffic: данные vnstat (как есть, единицы vnstat 1.x —
+# КиБ, перевод в байты в overview.js) и счётчики /proc/net/dev.
+
+case "$1" in
+list)
+	echo '{ "getTraffic": {}, "getCounters": {} }'
+	;;
+call)
+	case "$2" in
+	getTraffic)
+		out="$(vnstat --json 2>/dev/null)"
+		case "$out" in
+		'{'*) printf '%s\n' "$out" ;;
+		*) echo '{ "error": "vnstat --json" }' ;;
+		esac
+		;;
+	getCounters)
+		awk -F '[: ]+' 'NR > 2 {
+			sub(/^ +/, ""); split($0, f, /[: ]+/)
+			printf "%s\"%s\": { \"rx\": %s, \"tx\": %s }", (n++ ? ", " : "{ "), f[1], f[2], f[10]
+		} END { print (n ? " }" : "{}") }' /proc/net/dev
+		;;
+	esac
+	;;
+esac

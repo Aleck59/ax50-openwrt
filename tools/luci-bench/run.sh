@@ -5,7 +5,7 @@
 #
 #   tools/luci-bench/run.sh start            # поднять стенд на 127.0.0.1:8080
 #   tools/luci-bench/run.sh theme            # поставить/обновить тему footstrap
-#   tools/luci-bench/run.sh apps             # поставить luci-app-adguardhome/zapret (с заглушками)
+#   tools/luci-bench/run.sh apps             # поставить свои luci-app-* (с заглушками служб)
 #   tools/luci-bench/run.sh shot <путь> <png>   # скриншот страницы
 #   tools/luci-bench/run.sh nav <путь...>       # переход по меню + ошибки консоли
 #
@@ -74,9 +74,9 @@ apps)
 	out="$WORK/apps"; rm -rf "$out"
 	mkdir -p "$out/www/luci-static/resources/view" "$out/usr/lib/lua/luci/i18n" "$out/etc/config" \
 		"$out/etc/init.d" "$out/opt/zapret/ipset" "$out/usr/bin" "$out/usr/share"
-	for a in luci-app-adguardhome luci-app-zapret; do
+	for a in luci-app-adguardhome luci-app-zapret luci-app-traffic luci-app-netdata; do
 		cp -R "$REPO/package/$a/htdocs/." "$out/www/"
-		cp -R "$REPO/package/$a/root/usr/share/." "$out/usr/share/"
+		cp -R "$REPO/package/$a/root/usr/." "$out/usr/"
 		for po in "$REPO/package/$a"/po/ru/*.po; do
 			po2lmo "$po" "$out/usr/lib/lua/luci/i18n/$(basename "$po" .po).ru.lmo"
 		done
@@ -87,7 +87,9 @@ apps)
 	printf '#!/bin/sh\necho "AdGuard Home, version v0.0.0-bench"\n' > "$out/usr/bin/AdGuardHome"
 	printf '#!/bin/sh\ncase "$1" in enabled) exit 0;; *) echo "$0 $1";; esac\n' > "$out/etc/init.d/zapret"
 	cp "$out/etc/init.d/zapret" "$out/etc/init.d/adguardhome"
-	chmod +x "$out/usr/bin/AdGuardHome" "$out"/etc/init.d/*
+	cp "$out/etc/init.d/zapret" "$out/etc/init.d/netdata"
+	cp "$HERE/vnstat-stub" "$out/usr/bin/vnstat"
+	chmod +x "$out/usr/bin/AdGuardHome" "$out/usr/bin/vnstat" "$out"/etc/init.d/*
 	docker cp "$out/." luci-bench:/
 	docker exec luci-bench sh -c 'killall rpcd; rpcd & sleep 1; rm -rf /tmp/luci-*'
 	echo "приложения установлены"

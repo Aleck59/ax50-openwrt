@@ -1,0 +1,20 @@
+#!/bin/sh
+# vnstat: учёт WAN (eth1, при PPPoE — pppoe-wan) и база на флеше, чтобы
+# статистика переживала перезагрузку. Сохранение раз в 30 минут бережёт NAND.
+
+add_iface() {
+	uci -q del_list vnstat.@vnstat[-1].interface="$1"
+	uci -q add_list vnstat.@vnstat[-1].interface="$1"
+}
+
+uci -q get vnstat.@vnstat[-1] >/dev/null || uci -q add vnstat vnstat >/dev/null
+add_iface eth1
+[ "$(uci -q get network.wan.proto)" = pppoe ] && add_iface pppoe-wan
+uci -q commit vnstat
+
+[ -f /etc/vnstat.conf ] && sed -i \
+	-e 's|^DatabaseDir .*|DatabaseDir "/etc/vnstat"|' \
+	-e 's|^SaveInterval .*|SaveInterval 30|' /etc/vnstat.conf
+
+rm -f /tmp/luci-indexcache /tmp/luci-modulecache/*
+exit 0

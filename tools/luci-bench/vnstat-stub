@@ -1,0 +1,18 @@
+#!/bin/sh
+# Заглушка vnstat 1.18 для стенда: `vnstat --json` (единицы — КиБ).
+y=$(date +%Y) m=$(date +%-m) d=$(date +%-d) h=$(date +%-H)
+days= i=0
+while [ $i -lt 12 ]; do
+	t=$(date -d "@$(( $(date +%s) - i * 86400 ))" '+%Y %-m %-d' 2>/dev/null) || t="$y $m $d"
+	set -- $t
+	days="$days${days:+,}{\"id\":$i,\"date\":{\"year\":$1,\"month\":$2,\"day\":$3},\"rx\":$(( (i * 37 % 11 + 3) * 400000 )),\"tx\":$(( (i * 13 % 7 + 1) * 90000 ))}"
+	i=$((i + 1))
+done
+hours= i=0
+while [ $i -le $h ]; do
+	hours="$hours${hours:+,}{\"id\":$i,\"date\":{\"year\":$y,\"month\":$m,\"day\":$d},\"rx\":$(( (i * 7 % 5 + 1) * 50000 )),\"tx\":$(( (i % 3 + 1) * 9000 ))}"
+	i=$((i + 1))
+done
+cat <<J
+{"vnstatversion":"1.18","jsonversion":"1","interfaces":[{"id":"eth1","nick":"eth1","created":{"date":{"year":$y,"month":1,"day":1}},"updated":{"date":{"year":$y,"month":$m,"day":$d}},"traffic":{"total":{"rx":52000000,"tx":9000000},"days":[$days],"months":[{"id":0,"date":{"year":$y,"month":$m},"rx":21000000,"tx":3100000},{"id":1,"date":{"year":$y,"month":$(( m > 1 ? m - 1 : 12 ))},"rx":31000000,"tx":5900000}],"tops":[],"hours":[$hours]}}]}
+J
