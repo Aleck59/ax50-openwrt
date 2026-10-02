@@ -10,10 +10,20 @@ swpal: главный VAP без записи в конфигурации, ре�
 
 --- /dev/null
 +++ b/wlan_wave_feed/swpal_6x-uci/patches/03_ax50_master_vap_and_modes.patch
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,101 @@
 +--- a/files/scripts/lib/netifd/wireless/mac80211.sh
 ++++ b/files/scripts/lib/netifd/wireless/mac80211.sh
-+@@ -299,6 +299,33 @@
++@@ -289,6 +289,9 @@
++ 
++ 	json_select config
++ 	json_get_vars band full_ch_master_control
+++	# ax50-openwrt: адрес радио — для автоматического главного VAP
+++	radio_macaddr=
+++	json_get_var radio_macaddr macaddr
++ 	set_default full_ch_master_control 0
++ 
++ 	[ "$auto_channel" -gt 0 ] && {
++@@ -299,6 +302,33 @@
 + 
 + 	json_get_values ht_capab
 + 
@@ -47,7 +57,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 + 	ieee80211n=
 + 	ieee80211ac=
 + 	ieee80211ax=
-+@@ -730,6 +757,37 @@
++@@ -730,6 +760,46 @@
 + 	has_ap=1
 + }
 + 
@@ -69,6 +79,15 @@ swpal: главный VAP без записи в конфигурации, ре�
 ++	[ -e "/sys/class/net/$master" ] || \
 ++		iw phy "$phy" interface add "$master" type __ap || return 1
 ++
+++	# Созданный iw интерфейс получает нулевой MAC — hostapd тогда не может
+++	# его поднять («Address not available»). Главному VAP — адрес радио
+++	# (macaddr в wifi-device), как было в записи wlanN конфигурации.
+++	local mac="$radio_macaddr"
+++	[ -n "$mac" ] || mac="$(cat /sys/class/ieee80211/$phy/macaddress 2>/dev/null)"
+++	case "$mac" in ""|00:00:00:00:00:00) return 1 ;; esac
+++	ip link set dev "$master" down 2>/dev/null
+++	ip link set dev "$master" address "$mac" || return 1
+++
 ++	cat >> /var/run/hostapd-$phy.conf <<EOF2
 ++interface=$master
 ++ctrl_interface=/var/run/hostapd
@@ -76,7 +95,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 ++ignore_broadcast_ssid=1
 ++auth_algs=1
 ++wpa=0
-++bssid=$(cat /sys/class/net/$master/address)
+++bssid=$mac
 ++
 ++EOF2
 ++	hostapd_ctrl="/var/run/hostapd/$master"
@@ -85,7 +104,7 @@ swpal: главный VAP без записи в конфигурации, ре�
 + mac80211_prepare_vif() {
 + 	json_select config
 + 
-+@@ -761,6 +819,7 @@
++@@ -761,6 +831,7 @@
 + 		ap)
 + 			# Hostapd will handle recreating the interface and
 + 			# subsequent virtual APs belonging to the same PHY
