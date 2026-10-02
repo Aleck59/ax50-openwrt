@@ -21,13 +21,13 @@ command -v docker >/dev/null || { echo "нужен docker" >&2; exit 1; }
 # хеш этих входов хранится в метке образа (CI восстанавливает образ из кэша).
 img_hash="$( { cat "$REPO_ROOT/docker/Dockerfile"
 	echo "${BUILD_UID:-$(id -u)}:${BUILD_GID:-$(id -g)}"
-	[ -n "${EXTRA_CA:-}" ] && cat "$EXTRA_CA"
+	if [ -n "${EXTRA_CA:-}" ]; then cat "$EXTRA_CA"; fi
 } | sha256sum | cut -c1-16)"
 if [ "$(docker image inspect -f '{{index .Config.Labels "ax50.hash"}}' "$IMAGE" 2>/dev/null)" != "$img_hash" ]; then
 	ctx="$(mktemp -d)"
 	trap 'rm -rf "$ctx"' EXIT
 	cp "$REPO_ROOT/docker/Dockerfile" "$ctx/"
-	[ -n "${EXTRA_CA:-}" ] && cp "$EXTRA_CA" "$ctx/extra-ca.crt"
+	if [ -n "${EXTRA_CA:-}" ]; then cp "$EXTRA_CA" "$ctx/extra-ca.crt"; fi
 	echo "docker: сборка образа $IMAGE ($img_hash)" >&2
 	docker build -q -t "$IMAGE" --network host --label "ax50.hash=$img_hash" \
 		--build-arg UID="${BUILD_UID:-$(id -u)}" --build-arg GID="${BUILD_GID:-$(id -g)}" \
