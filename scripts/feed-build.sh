@@ -60,10 +60,11 @@ else
 	# Фиды Intel (feed_*) — только драйверы и прошивки платформы: всё нужное
 	# собрано workflow 1 и лежит в архиве пакетов, а в SDK без дерева ядра
 	# прошивки они не собираются. Поэтому в SDK ставятся только общие фиды.
+	# Свой фид — первым, иначе одноимённый пакет из packages (zerotier) победит
+	./scripts/feeds install -a -f -p ax50 >/dev/null
 	for f in base packages luci routing telephony; do
 		[ -d "feeds/$f" ] && ./scripts/feeds install -a -p "$f" >/dev/null
 	done
-	./scripts/feeds install -a -f -p ax50 >/dev/null
 
 	log "3/5 Конфигурация"
 	cat > .config <<-EOF

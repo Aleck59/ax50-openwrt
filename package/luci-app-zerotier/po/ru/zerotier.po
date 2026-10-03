@@ -16,6 +16,21 @@ msgstr "Включить"
 msgid "Networks"
 msgstr "Сети"
 
+msgid "Network ID"
+msgstr "ID сети"
+
+msgid "Managed addresses"
+msgstr "Адреса от контроллера"
+
+msgid "Global addresses"
+msgstr "Глобальные адреса"
+
+msgid "Default route"
+msgstr "Маршрут по умолчанию"
+
+msgid "DNS"
+msgstr "DNS"
+
 msgid "16-digit network ID."
 msgstr "16-значный ID сети."
 

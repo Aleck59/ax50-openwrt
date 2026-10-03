@@ -2,9 +2,14 @@
 # ZeroTier: убрать публичную сеть Earth из примера конфигурации и создать
 # зону межсетевого экрана для интерфейсов zt* с доступом в LAN и из LAN.
 
+# Старый пример (1.6.5, список join) и новый (секция network earth)
 uci -q get zerotier.sample_config >/dev/null && \
 	uci -q del_list zerotier.sample_config.join=8056c2e21c000001 && \
 	uci -q commit zerotier
+[ "$(uci -q get zerotier.earth.id)" = 8056c2e21c000001 ] && {
+	uci -q delete zerotier.earth
+	uci -q commit zerotier
+}
 
 uci -q get firewall.zerotier >/dev/null || {
 	uci -q batch <<-EOT

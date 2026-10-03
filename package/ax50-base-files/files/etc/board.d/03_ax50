@@ -26,8 +26,8 @@ if base_mac="$(ax50_base_mac)"; then
 	ucidef_set_interface_macaddr "wan" "$(ax50_mac_offset "$base_mac" 1)"
 fi
 
-# Светодиоды. WAN (синий/оранжевый) ведёт /etc/hotplug.d/iface/30-ax50-wanled.
-ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan" "link tx rx"
+# Светодиоды. WAN (синий/оранжевый) ведёт /etc/hotplug.d/iface/30-ax50-wanled,
+# LAN (линк портов, а не br-lan с Wi-Fi) — служба ax50-lanled.
 ucidef_set_led_netdev "wlan2g" "Wi-Fi 2.4 GHz" "blue:wlan2g" "wlan0.0" "link tx rx"
 ucidef_set_led_netdev "wlan5g" "Wi-Fi 5 GHz" "blue:wlan5g" "wlan2.0" "link tx rx"
 ucidef_set_led_usbport "usb" "USB" "blue:usb" usb1-port1 usb2-port1 usb3-port1 usb4-port1
