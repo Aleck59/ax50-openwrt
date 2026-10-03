@@ -7,6 +7,8 @@
 #                         который собирает фид opkg для этого релиза.
 #
 # Выпуск версии:  git tag v1.0.0 && git push origin v1.0.0
+#             или: Actions -> «Прошивка» -> Run workflow (ветка main),
+#                  release_tag = v1.0.0 — тег и релиз создаст сам workflow.
 #
 name: Прошивка
 
@@ -22,6 +24,15 @@ on:
                     'config/feed-packages.txt', 'scripts/feed-*.sh',
                     '.github/workflows/packages.yml' ]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Выпустить релиз с этим тегом (v1.0.0) на текущем коммите; пусто — обычная сборка'
+        required: false
+        default: ''
+
+# Тег релиза: push тега или ручной запуск с release_tag
+env:
+  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
 
 # Новый push не отменяет идущую сборку: следующая ждёт в очереди (в очереди
 # остаётся только последняя).
@@ -70,8 +81,8 @@ jobs:
         run: |
           owner="$(echo '${{ github.repository_owner }}' | tr 'A-Z' 'a-z')"
           base="https://${owner}.github.io/${{ github.event.repository.name }}"
-          if [ "${{ github.ref_type }}" = tag ]; then
-            ver="${{ github.ref_name }}"
+          if [ -n "$RELEASE_TAG" ]; then
+            ver="$RELEASE_TAG"
             feed="$base/releases/$ver"
           else
             ver="$(git describe --tags --always)"
@@ -248,7 +259,7 @@ jobs:
   release:
     name: Релиз
     needs: build
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || inputs.release_tag != ''
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -258,26 +269,37 @@ jobs:
 
       - uses: actions/download-artifact@v7
         with:
-          pattern: ax50-openwrt-${{ github.ref_name }}*
+          pattern: ax50-openwrt-${{ env.RELEASE_TAG }}*
           path: out
           merge-multiple: true
 
+      # Ручной запуск: тега в репозитории ещё нет, release-notes.sh нужен локальный
+      - name: Локальный тег
+        run: git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null || git tag "$RELEASE_TAG"
+
       - name: Описание релиза
-        run: scripts/release-notes.sh "${{ github.ref_name }}" out > notes.md
+        run: scripts/release-notes.sh "$RELEASE_TAG" out > notes.md
 
       - name: Публикация
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${{ github.ref_name }}"
+          tag="$RELEASE_TAG"
           pre=""
           case "$tag" in *-*) pre="--prerelease" ;; esac
+          # Тег уже есть (push тега) — проверить его; ручной запуск — создать
+          # тег на собранном коммите
+          if [ "${{ github.ref_type }}" = tag ]; then
+            where="--verify-tag"
+          else
+            where="--target ${{ github.sha }}"
+          fi
           ( cd out && sha256sum -- *.bin *.img *.manifest *.tar.* > sha256sums )
-          gh release create "$tag" $pre --verify-tag \
+          gh release create "$tag" $pre $where \
             --title "AX50 OpenWrt $tag" --notes-file notes.md \
             out/*.bin out/*.img out/*.manifest out/*.tar.* out/sha256sums
 
       - name: Запуск сборки фида (workflow 2)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run packages.yml --ref "${{ github.ref_name }}" -f release_tag="${{ github.ref_name }}"
+        run: gh workflow run packages.yml --ref "$RELEASE_TAG" -f release_tag="$RELEASE_TAG"

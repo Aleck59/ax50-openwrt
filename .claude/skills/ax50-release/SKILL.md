@@ -33,6 +33,11 @@ git tag -a v1.2.0 -m "AX50 OpenWrt v1.2.0"
 git push origin v1.2.0
 ```
 
+Без права push тегов (сессия Claude): Actions → «Прошивка» → Run workflow на `main`,
+`release_tag` = `v1.2.0` — workflow соберёт образ, сам создаст тег на этом коммите
+(`gh release create --target`) и релиз, затем запустит фид. Запуск через API:
+`actions_run_trigger run_workflow`, `workflow_id: firmware.yml`, `ref: main`.
+
 Тег с дефисом (`v1.2.0-rc1`) — пререлиз. Адрес фида зашит в прошивку через
 `CONFIG_VERSION_REPO`: `https://<owner>.github.io/<repo>/releases/<тег>` → `/etc/opkg/distfeeds.conf`.
 Сборки без тега указывают на `snapshots/<describe>` (не публикуется).
