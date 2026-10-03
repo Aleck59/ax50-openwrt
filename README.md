@@ -1,68 +1,72 @@
 # ax50-openwrt
 
-Свободная прошивка для **TP-Link Archer AX50 v1** на базе **prplWrt** — форка OpenWrt
-от prpl Foundation с открытым BSP Intel/MaxLinear (таргет `intel_mips/xrx500`, тот же,
-что у Netgear RAX40 на GRX350 + WAV654).
+OpenWrt для **TP-Link Archer AX50 v1**. Официальный OpenWrt этот роутер не поддерживает:
+у него процессор Intel GRX350 и Wi-Fi WAV654, а драйверов для них в ядре нет. Прошивка
+собрана на **prplWrt** — это OpenWrt 19.07 с открытыми драйверами Intel/MaxLinear.
 
-| | |
-|---|---|
-| Платформа | Intel/MaxLinear GRX350 (MIPS interAptiv, big-endian), 256 МБ ОЗУ, 128 МБ NAND |
-| Wi-Fi | WAV654, 802.11ax 2×2 2.4 ГГц + 2×2 5 ГГц, драйвер `iwlwav` из исходников |
-| Система | OpenWrt 19.07 (prplWrt) + ядро Intel 4.9.206, аппаратное ускорение PPA |
-| Веб-интерфейс | LuCI 19.07 с темой [footstrap](https://github.com/VizzleTF/luci-theme-footstrap), русский язык |
+Внутри обычный OpenWrt с LuCI на русском, плюс то, что нужно дома: WPA3, AdGuard Home,
+zapret, WireGuard, ZeroTier, SQM, статистика трафика и тема
+[footstrap](https://github.com/VizzleTF/luci-theme-footstrap). Пакеты ставятся через
+`opkg` из собственного фида.
 
-## Что в прошивке
+> ⚠️ Проект экспериментальный, его делает один человек на одном роутере. Ставьте, только
+> если у вас есть UART-кабель и вы готовы восстанавливать роутер через U-Boot.
 
-- **Все функции роутера**: 4×LAN + WAN 1 Гбит/с (порты как на корпусе), Wi-Fi 2.4/5 ГГц,
-  USB 3.0 (накопители), светодиоды, кнопки Reset/WPS/Wi-Fi, аппаратный NAT.
-- **Калибровка Wi-Fi и MAC-адреса** берутся из заводских разделов так же, как в стоке
-  ([как это устроено](docs/hardware.md)).
-- **PPPoE** (и IPv6, DHCP, статика) — в LuCI «Сеть → Интерфейсы → WAN».
-- **WPA3** (SAE и смешанный WPA2/WPA3) — по умолчанию для обеих сетей.
-- **AdGuard Home** — блокировка рекламы и трекеров для всей сети («Службы → AdGuard Home»).
-- **zapret** — обход DPI, режим autohostlist («Службы → zapret»).
-- **Тема footstrap**, тёмный режим, настройки внешнего вида («Система → Footstrap»).
-- **Фид пакетов** — `opkg install` работает сразу: OpenVPN, WireGuard, Samba, DLNA,
-  торренты, SQM, модемы и ещё сотни пакетов, собранных под эту прошивку.
+## Что проверено на роутере
 
-## Установка
+- Установка через UART + TFTP, загрузка, обновление через sysupgrade.
+- Сохранение настроек, MAC-адреса и калибровка Wi-Fi из заводских разделов.
+- Порты LAN и WAN (1 Гбит/с), интернет по DHCP.
+- NAT без аппаратного ускорения: **600–800 Мбит/с** (все 4 ядра процессора в работе).
+- Wi-Fi 2.4 и 5 ГГц, режим AX, WPA2/WPA3: клиенты подключаются, по 5 ГГц
+  **750–980 Мбит/с**. Каналы 36–64 (в том числе 160 МГц) и 149–165.
+- LuCI: список клиентов Wi-Fi, температура и нагрузка ядер на главной странице.
+- Светодиод WAN: не горит без кабеля, оранжевый без интернета, синий с интернетом.
 
-Прошивки TP-Link подписаны, поэтому через веб-интерфейс стока не ставится:
-нужен UART-кабель (3.3 В) и TFTP — пошагово в **[docs/flashing.md](docs/flashing.md)**.
-Начните с загрузки `initramfs-kernel.bin` в ОЗУ — это ничего не записывает во флеш.
+## Что не проверено или не работает
 
-Готовые образы — в [релизах](https://github.com/Aleck59/ax50-openwrt/releases).
+- **Аппаратное ускорение PPA** («Сеть → Аппаратное ускорение») — выключено: пока
+  ускоренные соединения работают медленнее обычных.
+- **5 ГГц, каналы 132–144** — точка доступа не поднимается.
+- PPPoE и L2TP, IPv6 — собраны, но не проверялись.
+- AdGuard Home, zapret, WireGuard, ZeroTier, SQM, DDNS, страница «Трафик» — собраны и
+  открываются в LuCI, в работе не проверялись.
+- Кнопки WPS/Wi-Fi и LED, мигание светодиода при обновлении, скорость клиентов в списке
+  Wi-Fi — исправлены, ждут проверки.
+- USB, фид пакетов `opkg` (публикуется с релизом 1.0.0).
 
-> ⚠️ Прошивка экспериментальная. Перед установкой сделайте резервную копию заводских
-> разделов (`calibration` уникален для каждого роутера).
+Нашли проблему — откройте [issue](https://github.com/Aleck59/ax50-openwrt/issues),
+приложите `logread` и `dmesg`.
 
-## Первый вход
+## Как поставить
 
-- Адрес **http://192.168.1.1**, пользователь `root`, пароль не задан — задайте сразу.
-- Wi-Fi выключен до настройки: «Сеть → Беспроводная сеть», задайте пароль и включите.
-- Резервная копия заводских данных: `ax50-backup` в консоли (SSH).
+Прошивки TP-Link подписаны, поэтому из веб-интерфейса стока OpenWrt не ставится. Нужен
+UART-кабель (3,3 В) и TFTP — пошагово в [docs/flashing.md](docs/flashing.md). Сначала
+загрузите `initramfs-kernel.bin` в память: так ничего не пишется во флеш. Сделайте
+резервную копию заводских разделов — раздел `calibration` у каждого роутера свой.
+
+Образы — в [релизах](https://github.com/Aleck59/ax50-openwrt/releases).
+
+После установки: **http://192.168.1.1**, пользователь `root` без пароля — задайте его
+сразу. Wi-Fi включён: сети `AX50-xxxx` и `AX50-xxxx-5G`, пароль `12345678` — смените.
 
 ## Сборка
 
 ```bash
-scripts/docker.sh        # prepare + configure + build в контейнере Ubuntu 20.04
+scripts/docker.sh
 ```
 
-Подробно — [docs/build.md](docs/build.md). Выпуск версии — тег `v*`, дальше всё делает CI
-([docs/release.md](docs/release.md)).
+Всё собирается в Docker, подробнее — [docs/build.md](docs/build.md). Релизы и фид пакетов
+собирает CI ([docs/release.md](docs/release.md)).
 
 ## Документация
 
-| | |
-|---|---|
-| [docs/hardware.md](docs/hardware.md) | железо, разметка NAND, калибровка, MAC, GPIO, порты |
-| [docs/flashing.md](docs/flashing.md) | UART, TFTP, установка, обновление, возврат на сток |
-| [docs/build.md](docs/build.md) | сборка, устройство репозитория, патчи |
-| [docs/release.md](docs/release.md) | CI/CD, релизы, фид пакетов, подпись |
-| [docs/packages.md](docs/packages.md) | AdGuard Home, zapret, WPA3, PPPoE, фид |
-| [docs/theme.md](docs/theme.md) | порт темы footstrap на LuCI 19.07 |
+- [docs/hardware.md](docs/hardware.md) — железо, разметка флеша, калибровка, MAC, кнопки
+- [docs/flashing.md](docs/flashing.md) — установка, обновление, возврат на сток
+- [docs/packages.md](docs/packages.md) — что умеет прошивка и как это настроить
+- [docs/build.md](docs/build.md), [docs/release.md](docs/release.md), [docs/theme.md](docs/theme.md)
 
 ## Лицензия
 
-GPL-2.0-only (как OpenWrt и prplWrt). Тема footstrap — Apache-2.0, zapret — MIT,
-AdGuard Home — GPL-3.0; бинарные прошивки радио — по лицензиям Intel/MaxLinear.
+GPL-2.0-only, как OpenWrt и prplWrt. Тема footstrap — Apache-2.0, zapret — MIT,
+AdGuard Home — GPL-3.0, прошивки Wi-Fi — по лицензиям Intel/MaxLinear.
