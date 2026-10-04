@@ -104,7 +104,7 @@ Samba/ksmbd, DLNA, Transmission, aria2, SQM, mwan3, DDNS, модемы 3G/4G, д
 | Модемы, телефоны | `luci-proto-qmi`/`uqmi`, `umbim`, `luci-proto-3g`, `usb-modeswitch`, `kmod-usb-net-rndis` (Android), `usbmuxd` + `kmod-usb-net-ipheth` (iPhone) |
 | USB-сетевые карты | `kmod-usb-net-rtl8152`, `kmod-usb-net-asix-ax88179` |
 | ИБП | `luci-app-nut`, `nut-server`, `nut-driver-usbhid-ups` |
-| Прочее | веб-камера `mjpg-streamer` + `kmod-video-uvc`, звук `kmod-usb-audio` + `alsa-utils`, USB-UART `picocom`/`ser2net` |
+| Прочее | звук `kmod-usb-audio` + `alsa-utils`, USB-UART `picocom`/`ser2net` |
 
 Пример — общая папка на флешке:
 

@@ -95,8 +95,6 @@ nut-driver-usbhid-ups
 # Сканеры (SANE по сети)
 sane-daemon
 sane-backends-all
-# Веб-камеры
-mjpg-streamer
 # USB-UART: консоль и проброс порта в сеть
 picocom
 minicom
@@ -167,3 +165,5 @@ lua
 # (hdlc/ioctl.h без IFNAMSIZ), на AX50 не нужен
 !luci-app-dcwapd
 !dcwapd
+# Веб-камеры: нет kmod-video-uvc (см. config/kmods.config)
+!luci-app-mjpg-streamer
