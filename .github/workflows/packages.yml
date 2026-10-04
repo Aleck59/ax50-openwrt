@@ -3,8 +3,9 @@
 #
 # Запускается workflow прошивки после публикации релиза (или вручную) и
 # собирает пакеты через SDK этого релиза. Результат:
-#   * GitHub Pages: https://<owner>.github.io/<repo>/releases/<тег>/ —
-#     адрес, прописанный в /etc/opkg/distfeeds.conf прошивки;
+#   * GitHub Pages: https://<owner>.github.io/<repo>/releases/dev/ — единый
+#     адрес фида для всех версий прошивки (/etc/opkg/distfeeds.conf), каждый
+#     релиз его перезаписывает;
 #   * архив фида ax50-openwrt-<тег>-feed.tar.gz в том же релизе
 #     (установка без интернета: распаковать на флешку и указать file://).
 #
@@ -27,7 +28,6 @@ permissions:
 
 env:
   TAG: ${{ inputs.release_tag }}
-  KEEP_RELEASES: 2
 
 jobs:
   feed:
@@ -100,25 +100,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tar -czf "ax50-openwrt-$TAG-feed.tar.gz" -C "site/releases/$TAG" .
+          # Фид публикуется по единому адресу releases/dev, независимо от версии
+          mv "site/releases/$TAG" site/releases/dev
+          tar -czf "ax50-openwrt-$TAG-feed.tar.gz" -C site/releases/dev .
           gh release upload "$TAG" "ax50-openwrt-$TAG-feed.tar.gz" --clobber
 
-      - name: Предыдущие релизы в составе сайта
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Страница сайта
         run: |
-          # Pages публикуется целиком, поэтому фиды прошлых релизов (их прошивки
-          # всё ещё могут стоять на роутерах) кладём рядом из их архивов.
-          gh release list --limit 20 --json tagName,isDraft \
-              --jq '.[] | select(.isDraft | not) | .tagName' \
-            | grep -vx "$TAG" | head -n $((KEEP_RELEASES - 1)) | while read -r old; do
-              f="ax50-openwrt-$old-feed.tar.gz"
-              gh release download "$old" -p "$f" -D old 2>/dev/null || continue
-              mkdir -p "site/releases/$old"
-              tar -xzf "old/$f" -C "site/releases/$old"
-              echo "добавлен фид $old"
-            done
-          scripts/feed-site.sh site "$TAG" "${{ github.repository }}"
+          scripts/feed-site.sh site dev "${{ github.repository }}" "$TAG"
           du -sh site
 
       - uses: actions/upload-pages-artifact@v5

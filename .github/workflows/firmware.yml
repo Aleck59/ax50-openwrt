@@ -83,11 +83,11 @@ jobs:
           base="https://${owner}.github.io/${{ github.event.repository.name }}"
           if [ -n "$RELEASE_TAG" ]; then
             ver="$RELEASE_TAG"
-            feed="$base/releases/$ver"
           else
             ver="$(git describe --tags --always)"
-            feed="$base/snapshots/$ver"
           fi
+          # Единый фид для всех версий: packages.yml публикует туда последний релиз
+          feed="$base/releases/dev"
           echo "version=$ver" >> "$GITHUB_OUTPUT"
           echo "VERSION=$ver" >> "$GITHUB_ENV"
           echo "FEED_URL=$feed" >> "$GITHUB_ENV"

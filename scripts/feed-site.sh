@@ -1,17 +1,17 @@
 #!/bin/bash
 #
 # Главная страница сайта фида (GitHub Pages): список релизов и инструкция.
-#   scripts/feed-site.sh <каталог сайта> <актуальный тег> <owner/repo>
+#   scripts/feed-site.sh <каталог сайта> <каталог фида: dev> <owner/repo> [тег релиза]
 #
 set -euo pipefail
 
 SITE="${1:?каталог}"
 TAG="${2:?тег}"
 REPO="${3:?owner/repo}"
+FROM="${4:-$TAG}"
 OWNER="${REPO%%/*}"
 URL="https://$(echo "$OWNER" | tr 'A-Z' 'a-z').github.io/${REPO#*/}"
 
-releases="$(cd "$SITE/releases" && ls -1 | sort -rV)"
 touch "$SITE/.nojekyll"
 
 {
@@ -46,17 +46,10 @@ ul.rel li { padding:8px 0; border-bottom:1px solid var(--line); }
 <pre>opkg update
 opkg install luci-app-openvpn luci-i18n-openvpn-ru</pre>
 
-<p>Модули ядра привязаны к сборке, поэтому у каждого релиза прошивки свой фид:</p>
-<ul class="rel">
-EOF
-	for r in $releases; do
-		mark=""
-		[ "$r" = "$TAG" ] && mark=" — актуальный"
-		echo "<li><a href=\"releases/$r/\">$r</a>$mark</li>"
-	done
-	cat <<EOF
-</ul>
-<p>Ручная настройка (<code>/etc/opkg/distfeeds.conf</code>, релиз $TAG):</p>
+<p>Фид один для всех версий прошивки: <a href="releases/$TAG/">releases/$TAG</a>, пакеты
+собраны из релиза $FROM. Модули ядра (<code>kmod-*</code>) ставятся только на прошивку
+с тем же ядром — если opkg откажется, обновите прошивку до последнего релиза.</p>
+<p>Ручная настройка (<code>/etc/opkg/distfeeds.conf</code>):</p>
 <pre>$(for d in $(cd "$SITE/releases/$TAG" && find . -name Packages.gz -printf '%h\n' | sort); do
 	n="$(basename "$d")"; [ "$n" = packages ] && n=core
 	echo "src/gz ax50_$n $URL/releases/$TAG/${d#./}"

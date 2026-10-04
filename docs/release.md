@@ -24,20 +24,25 @@ Run workflow → тег). Шаги:
 2. `scripts/feed-build.sh`: фиды на тех же коммитах, патчи, сборка пакетов из
    `config/feed-packages.txt` (шаблоны вида `luci-app-*` раскрываются), индексы, подпись;
 3. архив фида `ax50-openwrt-<тег>-feed.tar.gz` — в тот же релиз;
-4. сайт для GitHub Pages: фиды текущего и предыдущего релиза, страница с инструкцией.
+4. сайт для GitHub Pages: фид последнего релиза в `releases/dev/`, страница с инструкцией.
 
 Структура — как у downloads.openwrt.org, поэтому прошивке ничего настраивать не нужно:
 адрес задан при сборке (`CONFIG_VERSION_REPO`) и попадает в `/etc/opkg/distfeeds.conf`:
 
 ```
-src/gz ax50-openwrt_core       https://aleck59.github.io/ax50-openwrt/releases/<тег>/targets/intel_mips/xrx500/packages
-src/gz ax50-openwrt_base       https://aleck59.github.io/ax50-openwrt/releases/<тег>/packages/mips_24kc_nomips16/base
+src/gz ax50-openwrt_core       https://aleck59.github.io/ax50-openwrt/releases/dev/targets/intel_mips/xrx500/packages
+src/gz ax50-openwrt_base       https://aleck59.github.io/ax50-openwrt/releases/dev/packages/mips_24kc_nomips16/base
 src/gz ax50-openwrt_packages   …/packages/mips_24kc_nomips16/packages
 src/gz ax50-openwrt_luci       …/packages/mips_24kc_nomips16/luci
 …
 ```
 
-Модули ядра привязаны к конкретной сборке ядра, поэтому у каждого релиза свой фид.
+Адрес один для всех версий прошивки: каждый релиз перезаписывает `releases/dev`, так что
+старые прошивки тоже получают свежие пакеты. Исключение — модули ядра (`kmod-*`): они
+привязаны к сборке ядра, и если opkg откажется их ставить, обновите прошивку.
+
+Пакеты, которым нужны модули ядра (uqmi, umbim, usbip, alsa-utils, cifsmount), SDK не
+собирает — модулей в нём нет. Их собирает workflow 1 из `config/kmods.config`.
 
 ## Как выпустить версию
 
