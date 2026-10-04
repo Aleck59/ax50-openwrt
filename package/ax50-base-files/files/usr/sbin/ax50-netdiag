@@ -1,0 +1,101 @@
+#!/bin/sh
+# Диагностика пропускной способности: снимает счётчики до и после нагрузки
+# и печатает разницу. Запуск во время теста iperf3: ax50-netdiag [секунд]
+#
+#   softnet    по ядрам: обработано пакетов, отброшено (переполнена очередь
+#              backlog), squeeze (softirq не хватило бюджета или времени)
+#   ядра       загрузка по /proc/stat: user+sys, irq+softirq, простой
+#   прерывания сколько пришло на каждое ядро
+#   интерфейсы пакеты, отбросы и ошибки
+# и настройки, от которых зависит скорость (RPS, offload, flow control, qdisc).
+
+# shellcheck disable=SC2016 # программы awk в одинарных кавычках
+T="${1:-10}"
+D="$(mktemp -d)"
+trap 'rm -rf "$D"' EXIT
+
+snap() {
+	cat /proc/net/softnet_stat > "$D/softnet.$1"
+	grep '^cpu[0-9]' /proc/stat > "$D/stat.$1"
+	cat /proc/interrupts > "$D/irq.$1"
+	for i in /sys/class/net/*/statistics; do
+		n="${i%/statistics}"
+		echo "${n##*/} $(cat "$i/rx_packets" "$i/tx_packets" "$i/rx_dropped" \
+			"$i/tx_dropped" "$i/rx_errors" "$i/tx_errors" | tr '\n' ' ')"
+	done > "$D/net.$1"
+	tc -s qdisc show > "$D/qdisc.$1" 2>/dev/null
+}
+
+# awk по двум снимкам: строка N файла a — в A[N], строка файла b — в $0
+both() {
+	awk "NR == FNR { A[FNR] = \$0; next } { split(A[FNR], a, \" \") } $1" \
+		"$D/$2.a" "$D/$2.b"
+}
+
+echo "== Замер $T с — запустите нагрузку (iperf3) сейчас"
+snap a
+sleep "$T"
+snap b
+
+echo
+echo "== softnet: ядро обработано отброшено squeeze"
+# поля в hex; busybox awk понимает 0x только через printf, считаем в shell
+i=0
+while read -r p d q _; do
+	# shellcheck disable=SC2046 # нужно разбиение на поля
+	set -- $(sed -n "$((i + 1))p" "$D/softnet.b")
+	printf '  CPU%d %10d %8d %8d\n' "$i" \
+		$(( 0x$1 - 0x$p )) $(( 0x$2 - 0x$d )) $(( 0x$3 - 0x$q ))
+	i=$((i + 1))
+done < "$D/softnet.a"
+
+echo
+echo "== Загрузка ядер, %: user+sys irq+softirq простой"
+both '{
+	us = ($2 + $3 + $4) - (a[2] + a[3] + a[4])
+	ir = ($7 + $8) - (a[7] + a[8])
+	id = ($5 + $6) - (a[5] + a[6])
+	t = us + ir + id
+	if (t > 0) printf "  %s %5.1f %5.1f %5.1f\n", $1, 100*us/t, 100*ir/t, 100*id/t
+}' stat
+
+echo
+echo "== Прерывания за $T с по ядрам (только изменившиеся)"
+both 'FNR > 1 && a[1] == $1 {
+	s = ""; any = 0
+	for (c = 2; c <= 5; c++) { d = $c - a[c]; if (d > 0) any = 1; s = s sprintf(" %8d", d) }
+	name = ""; for (k = 6; k <= NF; k++) name = name " " $k
+	if (any) printf "  %-5s%s %s\n", $1, s, name
+}' irq
+
+echo
+echo "== Интерфейсы за $T с: rx tx rx_drop tx_drop rx_err tx_err"
+both 'a[1] == $1 {
+	s = ""; any = 0
+	for (k = 2; k <= NF; k++) { d = $k - a[k]; if (d) any = 1; s = s sprintf(" %9d", d) }
+	if (any) printf "  %-10s%s\n", $1, s
+}' net
+
+echo
+echo "== RPS (маска ядер)"
+for f in /sys/class/net/*/queues/rx-0/rps_cpus; do
+	n="${f#/sys/class/net/}"
+	echo "  ${n%%/*} $(cat "$f")"
+done
+echo "  netdev_max_backlog=$(cat /proc/sys/net/core/netdev_max_backlog)" \
+	"netdev_budget=$(cat /proc/sys/net/core/netdev_budget)" \
+	"dev_weight=$(cat /proc/sys/net/core/dev_weight)"
+
+if command -v ethtool > /dev/null; then
+	echo
+	echo "== Offload и flow control"
+	for n in eth1 eth0_1 eth0_2 eth0_3 eth0_4; do
+		[ -d "/sys/class/net/$n" ] || continue
+		echo "  $n: $(ethtool -k "$n" 2>/dev/null | grep -E '^(tcp-segmentation-offload|generic-receive-offload|generic-segmentation-offload|scatter-gather|rx-checksumming|tx-checksumming):' | tr -d ' ' | tr '\n' ' ')"
+		echo "  $n: pause $(ethtool -a "$n" 2>/dev/null | grep -E '^(RX|TX):' | tr -s ' \t' ' ' | tr '\n' ' ')"
+	done
+fi
+
+echo
+echo "== qdisc (счётчики с загрузки)"
+grep -E '^qdisc|dropped' "$D/qdisc.b" | sed 's/^/  /'
