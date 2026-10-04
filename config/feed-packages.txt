@@ -71,6 +71,37 @@ usbutils
 block-mount
 kmod-usb-storage
 
+# --- USB: диски ---
+# (программы, которым нужны модули ядра — uqmi, usbip, alsa-utils, cifsmount, —
+# собирает workflow прошивки, см. config/kmods.config)
+smartmontools
+hdparm
+badblocks
+fdisk
+cfdisk
+lsblk
+blkid
+btrfs-progs
+
+# --- USB: устройства ---
+# Телефоны iPhone (раздача интернета по USB)
+usbmuxd
+libimobiledevice-utils
+# ИБП (Network UPS Tools)
+nut-server
+nut-upsc
+nut-upsmon
+nut-driver-usbhid-ups
+# Сканеры (SANE по сети)
+sane-daemon
+sane-backends-all
+# Веб-камеры
+mjpg-streamer
+# USB-UART: консоль и проброс порта в сеть
+picocom
+minicom
+ser2net
+
 # --- Мониторинг и диагностика ---
 collectd
 vnstat

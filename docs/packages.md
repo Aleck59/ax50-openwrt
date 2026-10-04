@@ -84,10 +84,35 @@ ucode и ядро 4.18 или новее с `nft_tproxy` — в prplWrt 19.07 с
 ## Фид пакетов
 
 `opkg update && opkg install <пакет>` работает сразу — адрес фида встроен в прошивку
-(см. [release.md](release.md)). Что собирается — `config/feed-packages.txt`: все
+(`releases/dev`, один для всех версий, см. [release.md](release.md)). Что собирается — `config/feed-packages.txt`: все
 приложения LuCI с русским переводом, VPN (OpenVPN, WireGuard, strongSwan, ZeroTier),
 Samba/ksmbd, DLNA, Transmission, aria2, SQM, mwan3, DDNS, модемы 3G/4G, диагностика,
 утилиты командной строки, а также модули ядра (USB-модемы, файловые системы, туннели).
+
+### USB 3.0
+
+В образе — только поддержка накопителей (ext4, FAT, UAS, автомонтирование `block-mount`).
+Остальное — из фида:
+
+| Задача | Пакеты |
+|---|---|
+| Общая папка | `luci-app-samba4` или `luci-app-ksmbd`, FTP `vsftpd`, NFS `nfs-kernel-server` |
+| Медиа и загрузки | `luci-app-minidlna`, `luci-app-transmission`, `luci-app-aria2` |
+| Диски | `kmod-fs-ntfs`/`ntfs-3g`, `kmod-fs-exfat`, `btrfs-progs`, `smartmontools`, `hdparm`, `luci-app-hd-idle`, `fdisk`, `badblocks` |
+| Принтер, сканер | `luci-app-p910nd` + `kmod-usb-printer`, `sane-daemon` + `sane-backends-all` |
+| USB по сети | `usbip-server` — проброс любого USB-устройства на компьютер |
+| Модемы, телефоны | `luci-proto-qmi`/`uqmi`, `umbim`, `luci-proto-3g`, `usb-modeswitch`, `kmod-usb-net-rndis` (Android), `usbmuxd` + `kmod-usb-net-ipheth` (iPhone) |
+| USB-сетевые карты | `kmod-usb-net-rtl8152`, `kmod-usb-net-asix-ax88179` |
+| ИБП | `luci-app-nut`, `nut-server`, `nut-driver-usbhid-ups` |
+| Прочее | веб-камера `mjpg-streamer` + `kmod-video-uvc`, звук `kmod-usb-audio` + `alsa-utils`, USB-UART `picocom`/`ser2net` |
+
+Пример — общая папка на флешке:
+
+```sh
+opkg update && opkg install luci-app-samba4 luci-i18n-samba4-ru
+```
+
+Флешка монтируется в `/mnt/sda1`; папку добавьте в «Службы → Сетевые папки».
 
 Пакеты из официальных репозиториев OpenWrt (21.02+) **не подходят**: другая версия
 libc и ядра. Ставьте только из встроенного фида.
