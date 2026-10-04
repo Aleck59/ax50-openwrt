@@ -1,15 +1,20 @@
 #!/bin/sh
 # Терминал в LuCI («Службы → Терминал») встраивает ttyd по тому же протоколу,
 # что и сама LuCI. LuCI открывается только по https (uhttpd redirect_https),
-# поэтому ttyd тоже нужен SSL — с сертификатом uhttpd (его создаёт uhttpd при
-# первом старте, S50, раньше ttyd, S99). Без этого браузер показывает
-# ERR_SSL_PROTOCOL_ERROR, а ttyd пишет «forbidding on uri sanitation».
+# поэтому ttyd тоже нужен SSL: сертификат uhttpd, переведённый в PEM
+# (/etc/init.d/ax50-ttyd-cert, S98), и ключ uhttpd. Без SSL браузер
+# показывает ERR_SSL_PROTOCOL_ERROR, а ttyd пишет «forbidding on uri
+# sanitation»; с DER-сертификатом ttyd не стартует вовсе.
 [ -f /etc/config/ttyd ] || exit 0
-[ -n "$(uci -q get ttyd.@ttyd[0].ssl_cert)" ] && exit 0
+case "$(uci -q get ttyd.@ttyd[0].ssl_cert)" in
+''|/etc/uhttpd.crt) ;;
+*) exit 0 ;;
+esac
 uci -q batch <<-UCI
 	set ttyd.@ttyd[0].ssl='1'
-	set ttyd.@ttyd[0].ssl_cert='/etc/uhttpd.crt'
+	set ttyd.@ttyd[0].ssl_cert='/etc/ttyd.crt'
 	set ttyd.@ttyd[0].ssl_key='/etc/uhttpd.key'
 	commit ttyd
 UCI
+/etc/init.d/ax50-ttyd-cert enable
 exit 0

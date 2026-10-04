@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+# Сертификат для ttyd. uhttpd создаёт /etc/uhttpd.crt в формате DER
+# (px5g/openssl -outform der), а ttyd (libwebsockets) читает только PEM:
+# с DER он не стартует («PEM routines: no start line»). Перед запуском
+# ttyd (S99) делаем PEM-копию /etc/ttyd.crt; ключ uhttpd уже в PEM.
+
+START=98
+
+start() {
+	local src=/etc/uhttpd.crt dst=/etc/ttyd.crt
+	[ -s "$src" ] || return 0
+	[ -s "$dst" ] && [ ! "$src" -nt "$dst" ] && return 0
+	command -v openssl > /dev/null || return 0
+	openssl x509 -inform der -in "$src" -out "$dst.new" 2> /dev/null ||
+		openssl x509 -inform pem -in "$src" -out "$dst.new" 2> /dev/null ||
+		{ rm -f "$dst.new"; return 0; }
+	mv "$dst.new" "$dst"
+}
