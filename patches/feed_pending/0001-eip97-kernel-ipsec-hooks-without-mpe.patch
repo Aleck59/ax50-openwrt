@@ -1,0 +1,21 @@
+eip97: хуки IPsec ядра без модуля MPE (CONFIG_PPA_MPE_IP97=y)
+
+ltq_crypto собран с CONFIG_LTQ_MPE_IPSEC_SUPPORT/CONFIG_PPA_MPE_IP97 и
+ссылается на ltq_ipsec_*_hook, ppa_hook_session_ipsec_*_fn — их
+определяет ядро (esp4.c, xfrm_state.c, ppa_hook.c) только при
+CONFIG_PPA_MPE_IP97. Раньше флаг включал kmod-ppa-drv-mpe-ip97; без MPE
+(CPU3 отдан Linux) флаг пропал и модуль не загружался:
+"ltq_crypto: Unknown symbol ltq_ipsec_enc_hook".
+
+--- a/eip97/Makefile
++++ b/eip97/Makefile
+@@ -32,7 +32,8 @@
+   
+   MAINTAINER:=Intel
+   KCONFIG:= \
+-	CONFIG_CRYPTO_HW=y
++	CONFIG_CRYPTO_HW=y \
++	CONFIG_PPA_MPE_IP97=y
+ 
+   FILES:= \
+ 	$(PKG_BUILD_DIR)/ltq_crypto.ko
