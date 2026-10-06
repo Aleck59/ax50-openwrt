@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+# Мигание светодиода Wi-Fi 5 ГГц во время проверки канала DFS (CAC).
+
+START=98
+USE_PROCD=1
+
+start_service() {
+	procd_open_instance
+	procd_set_param command /usr/libexec/ax50-dfsled run
+	procd_set_param respawn
+	procd_close_instance
+}

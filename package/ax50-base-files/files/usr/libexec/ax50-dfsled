@@ -1,0 +1,61 @@
+#!/bin/sh
+# Светодиод Wi-Fi 5 ГГц мигает (1 с горит, 1 с нет), пока точка доступа
+# слушает канал DFS на радары перед включением (CAC, обычно 60 с).
+#
+#   ax50-dfsled run        — служба: подключается к hostapd (wlan2) и
+#                            получает его события; при обрыве — заново
+#   ax50-dfsled <if> <событие> ... — вызов из hostapd_cli -a
+#
+# После CAC — обычный триггер netdev из /etc/config/system (led_wlan5g).
+# Кнопка LED (/etc/ax50/leds-off) имеет приоритет: светодиод не трогаем.
+
+IF=wlan2
+LED=/sys/class/leds/blue:wlan5g
+SELF=/usr/libexec/ax50-dfsled
+
+[ -d "$LED" ] || exit 0
+
+blink() {
+	[ -e /etc/ax50/leds-off ] && return
+	echo timer > "$LED/trigger"
+	echo 1000 > "$LED/delay_on"
+	echo 1000 > "$LED/delay_off"
+}
+
+restore() {
+	local dev mode m
+	[ -e /etc/ax50/leds-off ] && return
+	grep -q '\[timer\]' "$LED/trigger" || return
+	dev="$(uci -q get system.led_wlan5g.dev)"
+	mode="$(uci -q get system.led_wlan5g.mode)"
+	echo netdev > "$LED/trigger"
+	echo "${dev:-wlan2.0}" > "$LED/device_name"
+	for m in ${mode:-link tx rx}; do
+		[ -e "$LED/$m" ] && echo 1 > "$LED/$m"
+	done
+}
+
+case "$1" in
+run)
+	while :; do
+		if [ -S "/var/run/hostapd/$IF" ]; then
+			# CAC мог начаться до подключения — сверяем текущее состояние
+			if hostapd_cli -i "$IF" status 2>/dev/null | grep -q '^state=DFS'; then
+				blink
+			else
+				restore
+			fi
+			hostapd_cli -i "$IF" -a "$SELF" > /dev/null 2>&1
+			restore
+		fi
+		sleep 2
+	done
+	;;
+"$IF")
+	case "$2" in
+	DFS-CAC-START) blink ;;
+	DFS-CAC-COMPLETED|DFS-CAC-ABORTED|AP-ENABLED|AP-DISABLED) restore ;;
+	esac
+	;;
+esac
+exit 0

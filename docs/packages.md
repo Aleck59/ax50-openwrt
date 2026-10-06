@@ -42,6 +42,9 @@ hostapd: wlan2: DFS-CAC-COMPLETED success=1 …
 hostapd: wlan2: AP-ENABLED
 ```
 
+Пока идёт проверка, светодиод Wi-Fi 5 ГГц мигает (1 с горит, 1 с нет) — служба
+`ax50-dfsled` следит за событиями hostapd `DFS-CAC-START` / `DFS-CAC-COMPLETED`.
+
 | Каналы | DFS | 160 МГц |
 |---|---|---|
 | 36–48 | нет | блок 36–64 (52–64 — с DFS) |
