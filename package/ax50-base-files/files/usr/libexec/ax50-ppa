@@ -2,7 +2,7 @@
 # Аппаратное ускорение PPA (GRX350: PAE + MPE) по настройкам /etc/config/ppa.
 # Последовательность как в стоковой прошивке TP-Link AX50
 # (preinit/05_init_interfaces_intel, init.d/hnat-start, sbin/config_ppa):
-#   ppacmd init -f <порог пакетов>, control --enable-lan/--enable-wan,
+#   ppacmd init (порог пакетов), control --enable-lan/--enable-wan,
 #   addlan (мост, порты, Wi-Fi) / addwan (eth1, PPPoE), включение PAE и MPE,
 #   setppefp / setswfp; при подъёме интерфейсов — повторная регистрация.
 #
@@ -52,8 +52,10 @@ start() {
 	ready || { logger -t ax50-ppa "нет ppacmd или модуля ppa_api"; return 1; }
 
 	config_get threshold global threshold 3
-	printf 'tcp-threshold %s\nudp-threshold %s\n' "$threshold" "$threshold" > /var/run/ppa.conf
-	ppacmd init -f /var/run/ppa.conf >/dev/null 2>&1 || {
+	# Порог — ключом -n: файл (-f) ppacmd этой версии не разбирает —
+	# cfg_names и INIT_CMD в ppacmd.c не совпадают по порядку, и
+	# «tcp-threshold» даёт «error: invalid command - line 1»
+	ppacmd init -n "$threshold" >/dev/null 2>&1 || {
 		logger -t ax50-ppa "ppacmd init: ошибка"
 		return 1
 	}
