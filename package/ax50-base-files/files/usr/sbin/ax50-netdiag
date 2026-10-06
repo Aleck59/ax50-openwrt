@@ -15,7 +15,7 @@ D="$(mktemp -d)"
 trap 'rm -rf "$D"' EXIT
 
 snap() {
-	cat /proc/net/softnet_stat > "$D/softnet.$1"
+	cat /proc/net/softnet_stat > "$D/softnet.$1" 2>/dev/null
 	grep '^cpu[0-9]' /proc/stat > "$D/stat.$1"
 	cat /proc/interrupts > "$D/irq.$1"
 	for i in /sys/class/net/*/statistics; do
@@ -37,6 +37,7 @@ snap a
 sleep "$T"
 snap b
 
+if [ -s "$D/softnet.a" ]; then
 echo
 echo "== softnet: ядро обработано отброшено squeeze"
 # поля в hex; busybox awk понимает 0x только через printf, считаем в shell
@@ -48,6 +49,7 @@ while read -r p d q _; do
 		$(( 0x$1 - 0x$p )) $(( 0x$2 - 0x$d )) $(( 0x$3 - 0x$q ))
 	i=$((i + 1))
 done < "$D/softnet.a"
+fi
 
 echo
 echo "== Загрузка ядер, %: user+sys irq+softirq простой"

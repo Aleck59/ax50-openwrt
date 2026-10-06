@@ -1,8 +1,16 @@
 #!/bin/sh
 # Системные настройки по умолчанию (только при первой загрузке).
-[ "$(uci -q get system.@system[0].hostname)" = "OpenWrt" ] && {
+case "$(uci -q get system.@system[0].hostname)" in OpenWrt|prplWrt)
 	uci -q set system.@system[0].hostname='ArcherAX50'
 	uci -q commit system
+	;;
+esac
+
+# RPS ведёт /etc/hotplug.d/net/25-ax50-rps; штатный 20-smp-tune при каждом
+# новом интерфейсе переписывал маски портов и догружал CPU2, занятый приёмом.
+[ "$(uci -q get network.@globals[0].default_ps)" = 0 ] || {
+	uci -q set network.@globals[0].default_ps='0'
+	uci -q commit network
 }
 
 # Тема footstrap по умолчанию — один раз: маркер ax50_theme сохраняется в

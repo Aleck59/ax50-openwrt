@@ -1,22 +1,31 @@
 #!/bin/sh
-# Распределение приёма пакетов (RPS). Пакеты от CBM datapath принимает NAPI
-# на CPU2 (cbm_isr_6, прерывание привязано драйвером), поэтому обработку
-# стеком (маршрутизация, NAT, мост) отдаём остальным ядрам (0, 1, 3). Штатный
-# 20-smp-tune eth0_x/eth1 пропускает: у них нет ссылки device.
+# Распределение обработки принятых пакетов (RPS) по ядрам.
+#
+# GRX350 — два физических ядра по два потока (VPE): CPU0+CPU1 и CPU2+CPU3.
+# Пакеты от CBM datapath принимает тасклет на CPU2 (прерывание cbm_dqm
+# привязано драйвером), поэтому обработку стеком (маршрутизация, NAT, мост)
+# отдаём остальным потокам. Маска по умолчанию — b (CPU0, CPU1, CPU3); свою
+# можно задать: uci set network.@globals[0].ax50_rps=3 (hex), затем
+# ACTION=add sh /etc/hotplug.d/net/25-ax50-rps.
+#
+# Штатный 20-smp-tune при каждом новом интерфейсе переписывал маски всех
+# физических портов на «все, кроме CPU0» (e) — и догружал занятый приёмом
+# CPU2; он отключается в uci-defaults (network.globals.default_ps=0). Здесь
+# маска ставится всем eth*/wlan* при любом событии add.
 [ "$ACTION" = add ] || exit 0
-case "$INTERFACE" in
-eth*|wlan*) ;;
-*) exit 0 ;;
-esac
 
 n="$(grep -c '^processor' /proc/cpuinfo)"
 [ "$n" -gt 1 ] || exit 0
-mask=$(( (1 << n) - 1 ))
-# CPU2 занят приёмом, если ядер больше двух
-[ "$n" -gt 2 ] && mask=$(( mask & ~4 ))
-mask="$(printf %x "$mask")"
 
-for q in /sys/class/net/"$INTERFACE"/queues/rx-*; do
+mask="$(uci -q get network.@globals[0].ax50_rps)"
+if [ -z "$mask" ]; then
+	m=$(( (1 << n) - 1 ))
+	# CPU2 занят приёмом, если ядер больше двух
+	[ "$n" -gt 2 ] && m=$(( m & ~4 ))
+	mask="$(printf %x "$m")"
+fi
+
+for q in /sys/class/net/eth*/queues/rx-* /sys/class/net/wlan*/queues/rx-*; do
 	[ -w "$q/rps_cpus" ] && echo "$mask" > "$q/rps_cpus"
 done
 exit 0
