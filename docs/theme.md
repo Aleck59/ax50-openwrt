@@ -51,3 +51,38 @@ tools/luci-bench/run.sh nav admin/status/overview admin/network/network admin/sy
    (`git diff <старый>..<новый> -- luci-theme-footstrap/ucode`).
 3. Обновить `po/ru/footstrap.po` из апстрима.
 4. Прогнать стенд (`tools/luci-bench`).
+
+# Тема Proton2025 на LuCI 19.07
+
+[luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) — вторая
+тема в образе (переключение: «Система → Система → Язык и тема»). Апстрим рассчитан на
+OpenWrt 23.05+ (ucode); пакет `package/luci-theme-proton2025` собирает его на закреплённом
+коммите и накладывает слой совместимости так же, как для footstrap.
+
+| Апстрим (23.05+) | Здесь (19.07) |
+|---|---|
+| `header.ut`, `footer.ut`, `sysauth.ut` (ucode) | `compat/luasrc/view/themes/proton2025/*.htm` (Lua): разметка и inline-скрипты те же, данные из ubus — через `luci.util.ubus`, JSON — `luci.jsonc` |
+| rpcd-модули `luci.proton-{settings,temp,system,search-cache}` (ucode) | exec-плагины на Lua в `compat/root/usr/libexec/rpcd/`; UCI — через `luci.model.uci` (Lua-биндинга `uci` в 19.07 нет) |
+| пики температур в памяти rpcd | файл `/tmp/proton-temp-peaks.json` (exec-плагин живёт один вызов) |
+| — | температура радиомодулей WAV600 (`iw … iwlwav gTemperature`) |
+| проверка и установка обновлений с GitHub | отключены: релизы апстрима — для 23.05+, тема обновляется из фида прошивки |
+| таблицы `<table>/<tr>/<td>` | в 19.07 это `<div class="table|tr|td">`: `divtables.py` при сборке переписывает селекторы CSS и `querySelector` в JS (`td` → `:is(td,.td)` и т. д.) и добавляет `display: table*` для `div` |
+
+Без изменений: CSS (кроме селекторов таблиц), JS-модули, поиск по страницам, страница
+настроек темы (карточка на «Система → Система»), страница температуры, переводы темы,
+`/etc/config/proton2025`.
+
+Исходники пакет берёт git-клоном (`PKG_MIRROR_HASH` — архив, который собирает
+OpenWrt из клона). Локально за TLS-прокси git в контейнере сборки не доверяет его
+сертификату — клонируйте апстрим на хост и подставьте его через
+`git config --global url."file:///work/build/proton-src.git".insteadOf <URL апстрима>`.
+
+Проверка на стенде:
+
+```bash
+tools/luci-bench/run.sh start
+scripts/docker.sh scripts/build.sh package/feeds/ax50/luci-theme-proton2025/compile
+docker cp build/prplwrt/bin/packages/*/ax50/luci-theme-proton2025_*.ipk luci-bench:/tmp/p.ipk
+docker exec luci-bench sh -c 'opkg install /tmp/p.ipk; uci set luci.main.mediaurlbase=/luci-static/proton2025; uci commit luci'
+tools/luci-bench/run.sh nav admin/status/overview admin/network/wireless admin/system/system
+```

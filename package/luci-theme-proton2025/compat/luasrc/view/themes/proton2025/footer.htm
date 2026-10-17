@@ -1,0 +1,91 @@
+<%#
+ luci-theme-proton2025 для LuCI 19.07 (ax50-openwrt): Lua-порт footer.ut.
+ Proton2025 Theme, Copyright 2025-2026 ChesterGoodiny. Apache License 2.0.
+-%>
+<%
+	local ver = require "luci.version"
+	local jsonc = require "luci.jsonc"
+	local function J(v)
+		local s = (jsonc.stringify(v) or "null"):gsub("</", "<\\/")
+		return s
+	end
+-%>
+		<a id="content" name="content"></a>
+	</div>
+</div>
+
+<footer class="proton-footer">
+	<%:Powered by%> <a href="https://github.com/openwrt/luci">LuCI</a> (<%=pcdata(ver.luciversion)%>)
+	/ <a href="https://github.com/Aleck59/ax50-openwrt" target="_blank" rel="noopener noreferrer"><%=pcdata(ver.distname)%> <%=pcdata(ver.distversion)%></a>
+	/ Proton2025 Theme v1.4.2
+	/ <a href="https://github.com/ChesterGoodiny/luci-theme-proton2025" target="_blank" rel="noopener noreferrer">GitHub</a>
+</footer>
+
+<script>
+(function() {
+	'use strict';
+
+	// Мост «ядро темы → внешние пакеты» (luci-app-proton2025-dashboard и др.).
+	// Флаг нужен для скриптов, подключившихся ПОСЛЕ события: они читают
+	// window.protonCoreReady вместо того, чтобы ждать событие, которое уже прошло.
+	function signalCoreReady() {
+		if (window.protonCoreReady)
+			return;
+
+		window.protonCoreReady = true;
+
+		try {
+			window.dispatchEvent(new CustomEvent('proton-core-ready', {
+				detail: { version: <%=J(ver.luciversion)%> }
+			}));
+		} catch (e) {
+			// IE-совместимый путь: CustomEvent как конструктор недоступен
+			var ev = document.createEvent('CustomEvent');
+			ev.initCustomEvent('proton-core-ready', false, false, {});
+			window.dispatchEvent(ev);
+		}
+	}
+
+	if (window.L && typeof window.L.require === 'function') {
+		window.L.require('menu-proton2025');
+		signalCoreReady();
+		return;
+	}
+
+	var title = <%=J(translate('LuCI core scripts failed to load'))%>;
+	var body = <%=J(translate('The web interface could not load required LuCI JavaScript files. If the browser reports certificate authority errors for this router, trust the HTTPS certificate or open the panel over HTTP.'))%>;
+
+	console.error('[Proton2025] LuCI core scripts are unavailable before theme bootstrap. This is usually caused by blocked core resources such as luci.js/cbi.js, for example due to HTTPS certificate trust errors.');
+
+	function showNotice() {
+		if (document.getElementById('proton-core-load-error'))
+			return;
+
+		var host = document.getElementById('maincontent') || document.body;
+		if (!host)
+			return;
+
+		var notice = document.createElement('div');
+		notice.id = 'proton-core-load-error';
+		notice.className = 'alert-message warning';
+
+		var heading = document.createElement('h4');
+		heading.textContent = title;
+		notice.appendChild(heading);
+
+		var paragraph = document.createElement('p');
+		paragraph.textContent = body;
+		notice.appendChild(paragraph);
+
+		host.insertBefore(notice, host.firstChild);
+	}
+
+	if (document.readyState === 'loading')
+		document.addEventListener('DOMContentLoaded', showNotice, { once: true });
+	else
+		showNotice();
+})();
+</script>
+
+</body>
+</html>
