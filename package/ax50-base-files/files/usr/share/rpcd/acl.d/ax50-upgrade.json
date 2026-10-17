@@ -1,0 +1,10 @@
+{
+	"ax50-upgrade": {
+		"description": "Firmware upgrade from the latest GitHub release (System → Backup / Flash firmware)",
+		"write": {
+			"file": {
+				"/usr/libexec/ax50-upgrade": [ "exec" ]
+			}
+		}
+	}
+}
