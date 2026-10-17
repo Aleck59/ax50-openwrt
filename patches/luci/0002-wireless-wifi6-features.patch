@@ -1,0 +1,46 @@
+luci-mod-network: Wi-Fi 6 — beamforming, MU-MIMO/OFDMA, BSS coloring
+
+Вкладка «Расширенные настройки» радио: режим beamforming и MU-MIMO/OFDMA
+Wi-Fi 6 (ax50_bf_mode, ax50_he_mu — применяет служба ax50-wifid), MU-MIMO
+Wi-Fi 5 (mu_beamformer), цвет BSS и его отключение (he_bss_color,
+he_operation_bss_color_disabled — patches/feed_wlan_6x/0007).
+
+--- a/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
++++ b/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
+@@ -918,6 +918,36 @@
+ 					o.datatype = 'range(15,65535)';
+ 					o.placeholder = 100;
+ 					o.rmempty = true;
++
++					/* ax50-openwrt: возможности WAV600 (Wi-Fi 6). Beamforming и MU
++					 * задаёт служба ax50-wifid командами драйвера, цвет BSS —
++					 * hostapd (patches/feed_wlan_6x/0007). */
++					o = ss.taboption('advanced', form.ListValue, 'ax50_bf_mode', 'Beamforming',
++						'Направленная передача на клиента. «Явный» — по обратной связи от клиента (802.11ac/ax), «неявный» — по оценке канала самой точкой (старые клиенты).');
++					o.value('', 'По умолчанию драйвера (явный)');
++					o.value('auto', 'Автоматически');
++					o.value('explicit', 'Явный (explicit)');
++					o.value('implicit', 'Неявный (implicit)');
++					o.value('off', 'Выключен');
++
++					o = ss.taboption('advanced', form.ListValue, 'ax50_he_mu', 'MU-MIMO и OFDMA (Wi-Fi 6)',
++						'Одновременная передача нескольким клиентам 802.11ax: OFDMA делит канал на части, MU-MIMO — по пространственным потокам. Выключение может помочь со старыми или капризными клиентами.');
++					o.value('', 'По умолчанию драйвера (включено)');
++					o.value('1', 'Включено');
++					o.value('0', 'Выключено');
++
++					o = ss.taboption('advanced', form.Flag, 'mu_beamformer', 'MU-MIMO (Wi-Fi 5)',
++						'Многопользовательская передача для клиентов 802.11ac (только 5 ГГц).');
++					o.default = o.enabled;
++
++					o = ss.taboption('advanced', form.Value, 'he_bss_color', 'Цвет BSS (BSS coloring)',
++						'Метка сети 1–63 в кадрах Wi-Fi 6: клиенты и точки отличают свои кадры от кадров соседей на том же канале и не ждут лишний раз. Задайте значение, отличное от соседних сетей. Пусто — 4 (по умолчанию драйвера, его же используют все точки на чипах Intel/MaxLinear).');
++					o.datatype = 'range(1,63)';
++					o.placeholder = '4';
++					o.rmempty = true;
++
++					o = ss.taboption('advanced', form.Flag, 'he_operation_bss_color_disabled', 'Отключить BSS coloring');
++					o.rmempty = true;
+ 				}
+ 
+ 

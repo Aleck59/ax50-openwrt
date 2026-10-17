@@ -25,6 +25,29 @@ Wi-Fi выключен до первой настройки (как принят
   ключ нынешнего сопровождающего (wens), а устаревшую базу из пакета WAVE убирает.
   Страна по умолчанию — RU.
 
+### Beamforming, MU-MIMO, OFDMA, BSS coloring
+
+«Сеть → Беспроводная сеть → Изменить (радио) → Дополнительные настройки»:
+
+| Настройка | UCI (`wireless.radioN`) | Чем задаётся |
+|---|---|---|
+| Beamforming: авто / явный / неявный / выключен | `ax50_bf_mode` | драйвер, `iw dev wlanN iwlwav sBfMode` |
+| MU-MIMO и OFDMA (Wi-Fi 6) | `ax50_he_mu` 1/0 | драйвер, `iw dev wlanN iwlwav sHeMuOperation` |
+| MU-MIMO (Wi-Fi 5, 802.11ac) | `mu_beamformer` | hostapd, `vht_capab` |
+| Цвет BSS 1–63 | `he_bss_color` | hostapd `he_operation_bss_color` |
+| Отключить BSS coloring | `he_operation_bss_color_disabled` | hostapd |
+
+Пустое значение — настройка драйвера по умолчанию: явный beamforming, MU-MIMO и
+OFDMA включены, цвет 4. Параметры драйвера применяет служба `ax50-wifid` при каждом
+включении точки (событие hostapd `AP-ENABLED`) и сразу после сохранения настроек.
+
+Цвет BSS драйвер MaxLinear раньше всегда ставил 4 — как и все точки на этих чипах,
+поэтому разделения с соседями по цвету не было. Патч `patches/feed_wlan_6x/0007`
+передаёт цвет из настроек; выберите значение, не совпадающее с соседними сетями
+Wi-Fi 6 (их цвет показывают анализаторы Wi-Fi). Режимы MU для нисходящего и
+восходящего направлений по отдельности (`sDynamicMuTypeDownLink/UpLink`) в
+интерфейс не вынесены — их значения в исходниках не описаны.
+
 ### Каналы 5 ГГц и задержка DFS
 
 Часть каналов 5 ГГц Wi-Fi делит с радарами (метео, авиация). На таких каналах (DFS)
@@ -43,7 +66,7 @@ hostapd: wlan2: AP-ENABLED
 ```
 
 Пока идёт проверка, светодиод Wi-Fi 5 ГГц мигает (1 с горит, 1 с нет) — служба
-`ax50-dfsled` следит за событиями hostapd `DFS-CAC-START` / `DFS-CAC-COMPLETED`.
+`ax50-wifid` следит за событиями hostapd `DFS-CAC-START` / `DFS-CAC-COMPLETED`.
 
 | Каналы | DFS | 160 МГц |
 |---|---|---|

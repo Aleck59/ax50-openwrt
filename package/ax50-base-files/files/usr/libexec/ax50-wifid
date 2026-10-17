@@ -1,0 +1,103 @@
+#!/bin/sh
+# Служба Wi-Fi AX50: события hostapd обоих радио (wlan0 — 2.4 ГГц, wlan2 — 5 ГГц).
+#
+#   ax50-wifid run              — служба: по циклу на радио, подключение к
+#                                 hostapd (hostapd_cli -a), при обрыве — заново
+#   ax50-wifid apply [wlanN]    — применить настройки драйвера сейчас
+#   ax50-wifid <if> <событие>   — вызов из hostapd_cli -a
+#
+# 1. Настройки драйвера, которых нет в hostapd (iw dev wlanN iwlwav ...),
+#    из /etc/config/wireless, секция радио (wlan0 — radio0, wlan2 — radio2):
+#      ax50_bf_mode  auto | explicit | implicit | off — beamforming (sBfMode)
+#      ax50_he_mu    1 | 0 — MU-MIMO и OFDMA Wi-Fi 6 (sHeMuOperation)
+#    Пустое значение — не трогать (настройка драйвера по умолчанию).
+#    Применяются при включении точки (AP-ENABLED): драйвер сбрасывает их
+#    при перезапуске радио.
+# 2. Светодиод Wi-Fi 5 ГГц мигает (1 с / 1 с), пока hostapd слушает канал
+#    DFS на радары (CAC): DFS-CAC-START ... COMPLETED/ABORTED. Кнопка LED
+#    (/etc/ax50/leds-off) имеет приоритет.
+
+SELF=/usr/libexec/ax50-wifid
+LED=/sys/class/leds/blue:wlan5g
+
+radio_of() { echo "radio${1#wlan}"; }
+
+apply() {
+	local ifn="$1" r bf mu
+	[ -d "/sys/class/net/$ifn" ] || return 0
+	r="$(radio_of "$ifn")"
+	bf="$(uci -q get "wireless.$r.ax50_bf_mode")"
+	case "$bf" in
+	explicit) bf=0 ;;
+	implicit) bf=1 ;;
+	off) bf=4 ;;
+	auto) bf=255 ;;
+	*) bf= ;;
+	esac
+	[ -n "$bf" ] && iw dev "$ifn" iwlwav sBfMode "$bf" > /dev/null 2>&1
+	mu="$(uci -q get "wireless.$r.ax50_he_mu")"
+	case "$mu" in
+	0|1) iw dev "$ifn" iwlwav sHeMuOperation "$mu" > /dev/null 2>&1 ;;
+	esac
+	return 0
+}
+
+led_blink() {
+	[ -d "$LED" ] && [ ! -e /etc/ax50/leds-off ] || return 0
+	echo timer > "$LED/trigger"
+	echo 1000 > "$LED/delay_on"
+	echo 1000 > "$LED/delay_off"
+}
+
+led_restore() {
+	local dev mode m
+	[ -d "$LED" ] && [ ! -e /etc/ax50/leds-off ] || return 0
+	grep -q '\[timer\]' "$LED/trigger" || return 0
+	dev="$(uci -q get system.led_wlan5g.dev)"
+	mode="$(uci -q get system.led_wlan5g.mode)"
+	echo netdev > "$LED/trigger"
+	echo "${dev:-wlan2.0}" > "$LED/device_name"
+	for m in ${mode:-link tx rx}; do
+		[ -e "$LED/$m" ] && echo 1 > "$LED/$m"
+	done
+}
+
+watch() {
+	local ifn="$1" state
+	while :; do
+		if [ -S "/var/run/hostapd/$ifn" ]; then
+			# Точка могла включиться (или начать CAC) до подключения
+			state="$(hostapd_cli -i "$ifn" status 2>/dev/null | sed -n 's/^state=//p')"
+			case "$state" in
+			ENABLED) apply "$ifn" ;;
+			DFS) [ "$ifn" = wlan2 ] && led_blink ;;
+			esac
+			[ "$state" = DFS ] || { [ "$ifn" = wlan2 ] && led_restore; }
+			hostapd_cli -i "$ifn" -a "$SELF" > /dev/null 2>&1
+			[ "$ifn" = wlan2 ] && led_restore
+		fi
+		sleep 2
+	done
+}
+
+case "$1" in
+run)
+	watch wlan0 &
+	watch wlan2 &
+	wait
+	;;
+apply)
+	if [ -n "$2" ]; then apply "$2"; else apply wlan0; apply wlan2; fi
+	;;
+wlan*)
+	case "$2" in
+	AP-ENABLED)
+		apply "$1"
+		[ "$1" = wlan2 ] && led_restore
+		;;
+	DFS-CAC-START) [ "$1" = wlan2 ] && led_blink ;;
+	DFS-CAC-COMPLETED|DFS-CAC-ABORTED|AP-DISABLED) [ "$1" = wlan2 ] && led_restore ;;
+	esac
+	;;
+esac
+exit 0
