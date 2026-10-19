@@ -67,13 +67,17 @@ cp -a "$REPO_ROOT/target/linux/intel_mips/." "$TARGET_SRC/"
 log "5/6 Установка пакетов и внешнего таргета"
 # Индексы надо перестроить: патчи и оверлей меняют Makefile пакетов и таргета
 ./scripts/feeds update -i
+# Свой фид — первым: `feeds install -f` подменяет только пакеты ядра OpenWrt, а
+# пакет из packages, установленный раньше, остаётся (так тихо собирался бы
+# ZeroTier 1.6.5 вместо нашего 1.16). Кто установлен первым, тот и собирается.
+./scripts/feeds install -a -f -p ax50 >/dev/null
 ./scripts/feeds install -a -p packages >/dev/null
 ./scripts/feeds install -a -p luci >/dev/null
 ./scripts/feeds install -a -p routing >/dev/null
 ./scripts/feeds install -a -p telephony >/dev/null
-# Фиды Intel и свой фид ставятся с -f: они переопределяют одноимённые пакеты
+# Фиды Intel ставятся с -f: они переопределяют одноимённые пакеты ядра OpenWrt
 for f in feed_target_mips feed_datapath feed_ppa feed_gphy_firmware \
-	feed_switch_api feed_wlan_6x feed_opensource_apps feed_pending ax50; do
+	feed_switch_api feed_wlan_6x feed_opensource_apps feed_pending; do
 	./scripts/feeds install -a -f -p "$f" >/dev/null
 done
 ./scripts/feeds install intel_mips

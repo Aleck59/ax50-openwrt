@@ -13,8 +13,9 @@ description: Выпуск версии прошивки ax50-openwrt — тег,
    пакеты образа), `sha256sums`, и запуск workflow 2 через `gh workflow run`.
 2. **`.github/workflows/packages.yml` (Фид пакетов)** — `workflow_dispatch(release_tag)`:
    SDK релиза собирает `config/feed-packages.txt` (`scripts/feed-build.sh`), раскладывает
-   по схеме downloads.openwrt.org в `releases/<тег>/`, кладёт `*-feed.tar.gz` в релиз и
-   публикует сайт на GitHub Pages (`scripts/feed-site.sh`, хранит `KEEP_RELEASES` фидов).
+   по схеме downloads.openwrt.org в `releases/dev/` (один адрес для всех версий, каждый
+   релиз его перезаписывает), кладёт `*-feed.tar.gz` в релиз и публикует сайт на GitHub
+   Pages (`scripts/feed-site.sh`).
 
 `workflow_dispatch` и запуск из job работают, только когда файл workflow есть в ветке по
 умолчанию (`main`).
@@ -39,8 +40,11 @@ git push origin v1.2.0
 `actions_run_trigger run_workflow`, `workflow_id: firmware.yml`, `ref: main`.
 
 Тег с дефисом (`v1.2.0-rc1`) — пререлиз. Адрес фида зашит в прошивку через
-`CONFIG_VERSION_REPO`: `https://<owner>.github.io/<repo>/releases/<тег>` → `/etc/opkg/distfeeds.conf`.
-Сборки без тега указывают на `snapshots/<describe>` (не публикуется).
+`CONFIG_VERSION_REPO`: `https://<owner>.github.io/<repo>/releases/dev` → `/etc/opkg/distfeeds.conf`
+— у всех сборок, с тегом и без.
+
+Пакеты, зависящие от модулей ядра (uqmi, usbip, alsa-utils…), SDK не соберёт — модулей
+в нём нет. Такие пакеты — в `config/kmods.config` (=m, собирает workflow 1).
 
 Перезапуск фида: Actions → «Фид пакетов» → Run workflow → тег.
 

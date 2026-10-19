@@ -1,0 +1,112 @@
+iwlwav: настраиваемый цвет BSS (BSS coloring, Wi-Fi 6)
+
+Драйвер всегда ставил цвет 4 («FIX ME: Update the he_bss_color to 4 for
+all bands»), hostapd MaxLinear игнорировал he_operation_bss_color, а
+mac80211.sh писал he_bss_color — ключ, которого этот hostapd не знает.
+Все точки на чипах Intel/MaxLinear вокруг имели один цвет 4, и
+разделение соседних сетей по цвету (spatial reuse) не работало.
+
+- драйвер: цвет из he_operation от hostapd (0 — по умолчанию, 4);
+- hostapd: he_operation_bss_color=1..63 задаёт цвет, флаг «выключен»
+  (he_operation_bss_color_disabled) сохраняется;
+- mac80211.sh: UCI he_bss_color → he_operation_bss_color.
+
+--- /dev/null
++++ b/wlan_wave_feed/iwlwav-driver-uci/patches/030-ax50-bss-color.patch
+@@ -0,0 +1,34 @@
++--- a/drivers/net/wireless/intel/iwlwav/wireless/driver/core.c
+++++ b/drivers/net/wireless/intel/iwlwav/wireless/driver/core.c
++@@ -2538,10 +2538,12 @@
++     if(mtlk_hw_type_is_gen6_d2(mtlk_vap_get_hw(vap_handle)))
++       he_operation[HE_OPERATION_CAP2_IDX] = HE_OPERATION_ER_SU_DISABLE_UNSET;
++ 
++-    /* FIX ME: Update the he_bss_color to 4 for all bands*/
+++    /* ax50-openwrt: цвет BSS (1..63) задаёт hostapd (he_operation_bss_color);
+++     * 0 — значение по умолчанию драйвера (4). Раньше цвет всегда был 4. */
++     he_operation_bss_color_disable_flag = (he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_DISABLED_FLAG);
++-    he_operation[HE_OPERATION_CAP3_IDX] = HE_OPERATION_BSS_COLOR_DFLT;
++-    he_operation[HE_OPERATION_CAP3_IDX] |= he_operation_bss_color_disable_flag;
+++    if (!(he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_MASK))
+++      he_operation[HE_OPERATION_CAP3_IDX] = HE_OPERATION_BSS_COLOR_DFLT;
+++    he_operation[HE_OPERATION_CAP3_IDX] = (he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_MASK) | he_operation_bss_color_disable_flag;
++ 
++     if(wave_radio_max_tx_antennas_get(radio) == MAX_NUM_TX_ANTENNAS)
++       he_operation[HE_OPERATION_CAP6_IDX] = HE_OPERATION_MAX_COHOSTED_BSS_IND_4STS;
++@@ -6692,10 +6694,12 @@
++       if(mtlk_hw_type_is_gen6_d2(mtlk_vap_get_hw(nic->vap_handle)))
++         he_operation[HE_OPERATION_CAP2_IDX] = HE_OPERATION_ER_SU_DISABLE_UNSET;
++ 
++-      /* FIX ME: Update the he_bss_color to 4 for all bands*/
+++      /* ax50-openwrt: цвет BSS (1..63) задаёт hostapd (he_operation_bss_color);
+++       * 0 — значение по умолчанию драйвера (4). Раньше цвет всегда был 4. */
++       he_operation_bss_color_disable_flag = (he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_DISABLED_FLAG);
++-      he_operation[HE_OPERATION_CAP3_IDX] = HE_OPERATION_BSS_COLOR_DFLT;
++-      he_operation[HE_OPERATION_CAP3_IDX] |= he_operation_bss_color_disable_flag;
+++      if (!(he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_MASK))
+++        he_operation[HE_OPERATION_CAP3_IDX] = HE_OPERATION_BSS_COLOR_DFLT;
+++      he_operation[HE_OPERATION_CAP3_IDX] = (he_operation[HE_OPERATION_CAP3_IDX] & HE_OPERATION_BSS_COLOR_MASK) | he_operation_bss_color_disable_flag;
++ 
++       if(wave_radio_max_tx_antennas_get(radio) == MAX_NUM_TX_ANTENNAS)
++         he_operation[HE_OPERATION_CAP6_IDX] = HE_OPERATION_MAX_COHOSTED_BSS_IND_4STS;
+--- /dev/null
++++ b/wlan_wave_feed/iwlwav-hostap-uci/patches/110-ax50-bss-color.patch
+@@ -0,0 +1,44 @@
++--- a/hostapd/config_file.c
+++++ b/hostapd/config_file.c
++@@ -4016,7 +4016,17 @@
++ 				HE_PHY_CAP0_CHANNEL_WIDTH_SET_B1;
++ 		}
++ 	} else if (os_strcmp(buf, "he_operation_bss_color") == 0) {
++-		/*conf->he_oper.bss_color_info = atoi(pos);*/
+++		/* ax50-openwrt: цвет BSS 1..63 (0 — по умолчанию драйвера);
+++		 * флаг «выключен» (he_operation_bss_color_disabled) сохраняется */
+++		int color = atoi(pos);
+++		if (color < 0 || color > 63) {
+++			wpa_printf(MSG_ERROR, "Line %d: invalid he_operation_bss_color %d",
+++				   line, color);
+++			return 1;
+++		}
+++		conf->he_oper.bss_color_info =
+++			(conf->he_oper.bss_color_info & ~HE_OPERATION_BSS_COLOR) |
+++			(color & HE_OPERATION_BSS_COLOR);
++ 	} else if (os_strcmp(buf, "he_operation_default_pe_duration") == 0) {
++ 		clr_set_he_cap(&conf->he_oper.he_oper_params[HE_OPERATION_CAP0_IDX],
++ 					   atoi(pos), HE_OPERATION_CAP0_DEFAULT_PE_DURATION);
++--- a/src/ap/hostapd.c
+++++ b/src/ap/hostapd.c
++@@ -1172,6 +1172,8 @@
++ #define HE_OPER_VHT_OPER_INFO_SIZE 3
++ 	u8 he_operation_hw[sizeof(hapd->iconf->he_oper)];
++ 	u8 he_oper_bss_color_disable_flag = (hapd->iface->conf->he_oper.bss_color_info & HE_OPERATION_BSS_COLOR_DISABLED);
+++	/* ax50-openwrt: цвет из конфигурации (0 — оставить цвет драйвера) */
+++	u8 he_oper_bss_color = (hapd->iface->conf->he_oper.bss_color_info & HE_OPERATION_BSS_COLOR);
++ 	if(hostapd_drv_get_he_operation(hapd, (void*)&he_operation_hw) < 0) {
++ 		 wpa_printf(MSG_ERROR, "Failed to get HE Operation from driver");
++ 	} else {
++@@ -1200,6 +1202,11 @@
++       he_operation_hw[HE_OPERATION_CAP3_IDX] &= (~HE_OPERATION_BSS_COLOR_DISABLED);
++     }
++ 
+++    if (he_oper_bss_color) {
+++      he_operation_hw[HE_OPERATION_CAP3_IDX] &= ~HE_OPERATION_BSS_COLOR;
+++      he_operation_hw[HE_OPERATION_CAP3_IDX] |= he_oper_bss_color;
+++    }
+++
++     hapd->iconf->he_oper.bss_color_info = he_operation_hw[HE_OPERATION_CAP3_IDX];
++ 
++     if (hostapd_drv_set_he_operation(hapd, (void*)&he_operation_hw) < 0)
+--- /dev/null
++++ b/wlan_wave_feed/swpal_6x-uci/patches/04_ax50_bss_color.patch
+@@ -0,0 +1,12 @@
++--- a/files/scripts/lib/netifd/wireless/mac80211.sh
+++++ b/files/scripts/lib/netifd/wireless/mac80211.sh
++@@ -176,7 +176,8 @@
++ 		[ -n "$he_su_beamformer" ] && append base_cfg "he_su_beamformer=$he_su_beamformer" "$N"
++ 		[ -n "$he_su_beamformee" ] && append base_cfg "he_su_beamformee=$he_su_beamformee" "$N"
++ 		[ -n "$he_mu_beamformer" ] && append base_cfg "he_mu_beamformer=$he_mu_beamformer" "$N"
++-		[ -n "$he_bss_color" ] && append base_cfg "he_bss_color=$he_bss_color" "$N"
+++		# ax50-openwrt: hostapd MaxLinear знает только he_operation_bss_color
+++		[ -n "$he_bss_color" ] && append base_cfg "he_operation_bss_color=$he_bss_color" "$N"
++ 		[ -n "$he_operation_bss_color_disabled" ] && append base_cfg "he_operation_bss_color_disabled=$he_operation_bss_color_disabled" "$N"
++ 		[ -n "$he_default_pe_duration" ] && append base_cfg "he_default_pe_duration=$he_default_pe_duration" "$N"
++ 		[ -n "$he_twt_required" ] && append base_cfg "he_twt_required=$he_twt_required" "$N"

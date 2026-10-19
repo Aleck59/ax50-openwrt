@@ -1,0 +1,38 @@
+#!/bin/sh
+# Светодиод LAN: горит, пока хотя бы в одном порту LAN есть кабель (линк), и
+# мигает при передаче данных через этот порт (триггер netdev link tx rx).
+# Триггер на br-lan не годится: в мост входит Wi-Fi, и светодиод горел без
+# кабелей. Линк портов не даёт событий hotplug, поэтому опрос раз в 2 с.
+
+L=/sys/class/leds/blue:lan
+PORTS="eth0_1 eth0_2 eth0_3 eth0_4"
+[ -d "$L" ] || exit 0
+
+cur=x
+while :; do
+	dev=
+	if [ -e /etc/ax50/leds-off ]; then
+		dev=off
+	else
+		for p in $PORTS; do
+			if [ "$(cat "/sys/class/net/$p/carrier" 2>/dev/null)" = 1 ]; then
+				dev=$p
+				break
+			fi
+		done
+	fi
+	if [ "$dev" != "$cur" ]; then
+		cur=$dev
+		if [ -z "$dev" ] || [ "$dev" = off ]; then
+			echo none > "$L/trigger"
+			echo 0 > "$L/brightness"
+		else
+			echo netdev > "$L/trigger"
+			echo "$dev" > "$L/device_name"
+			for m in link tx rx; do
+				[ -e "$L/$m" ] && echo 1 > "$L/$m"
+			done
+		fi
+	fi
+	sleep 2
+done

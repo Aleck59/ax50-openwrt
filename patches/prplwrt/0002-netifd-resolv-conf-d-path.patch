@@ -1,0 +1,21 @@
+netifd: DNS провайдера в /tmp/resolv.conf.d/resolv.conf.auto
+
+base-files и dnsmasq в дереве prplWrt новее netifd: dnsmasq читает
+/tmp/resolv.conf.d/resolv.conf.auto, а netifd по умолчанию пишет
+/tmp/resolv.conf.auto. Клиенты получали роутер как DNS, но запросы
+дальше не уходили.
+
+--- a/package/network/config/netifd/files/etc/init.d/network
++++ b/package/network/config/netifd/files/etc/init.d/network
+@@ -16,7 +16,10 @@
+ 	init_switch
+ 
+ 	procd_open_instance
+-	procd_set_param command /sbin/netifd
++	# ax50-openwrt: тот же файл, что читает dnsmasq (init.d/boot создаёт
++	# /tmp/resolv.conf.d); без -r netifd писал DNS провайдера в
++	# /tmp/resolv.conf.auto, и у dnsmasq не было вышестоящих серверов
++	procd_set_param command /sbin/netifd -r /tmp/resolv.conf.d/resolv.conf.auto
+ 	procd_set_param respawn
+ 	procd_set_param watch network.interface
+ 	[ -e /proc/sys/kernel/core_pattern ] && {

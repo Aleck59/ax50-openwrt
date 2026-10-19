@@ -1,0 +1,188 @@
+#!/usr/bin/lua
+-- Proton2025 для LuCI 19.07 (ax50-openwrt): порт rpcd-модуля luci.proton-settings
+-- (ucode) в exec-плагин rpcd. Настройки темы в UCI /etc/config/proton2025.
+-- Проверка и установка обновлений с GitHub отключены: релизы апстрима —
+-- пакеты для OpenWrt 23.05+ (ucode), тема обновляется вместе с фидом прошивки.
+--
+-- Proton2025 Theme, Copyright 2025-2026 ChesterGoodiny. Apache License 2.0.
+
+local jsonc = require "luci.jsonc"
+-- в LuCI 19.07 Lua-биндинга uci нет; luci.model.uci работает через ubus
+local uci = require "luci.model.uci"
+
+local CONFIG, SECTION = "proton2025", "settings"
+local PKG = "luci-theme-proton2025"
+local RELEASE_URL = "https://github.com/ChesterGoodiny/luci-theme-proton2025"
+
+local LOGIN_ANIMATIONS = { "off", "particles", "constellation", "plexus", "breathing",
+	"gravity", "lowpoly", "dataflow", "flowfield", "circuit", "packetpulses", "hex",
+	"underwater", "fluid" }
+
+-- порядок для getSettings; значения и ограничения — как в апстриме
+local OPTIONS = {
+	{ "mode", { default = "auto", values = { "dark", "light", "auto" } } },
+	{ "accent", { default = "blue", values = { "default", "blue", "purple", "green", "orange", "red", "custom" } } },
+	{ "accent_custom", { default = "#5e9eff", pattern = "hex" } },
+	{ "zoom", { default = "100", min = 50, max = 150 } },
+	{ "transparency", { default = "1", values = { "0", "1" } } },
+	{ "border_radius", { default = "default", values = { "default", "sharp", "extra" } } },
+	{ "tab_outline", { default = "0", values = { "0", "1" } } },
+	{ "tab_style", { default = "modern", values = { "modern", "classic", "proton" } } },
+	{ "login_branding", { default = "0", values = { "0", "1" } } },
+	{ "login_name", { default = "", maxlen = 128 } },
+	{ "login_logo", { default = "", maxlen = 300000 } },
+	{ "login_logo_only", { default = "0", values = { "0", "1" } } },
+	{ "animations", { default = "1", values = { "0", "1" } } },
+	{ "services_widget", { default = "1", values = { "0", "1" } } },
+	{ "temp_widget", { default = "1", values = { "0", "1" } } },
+	{ "services_log", { default = "0", values = { "0", "1" } } },
+	{ "log_highlight", { default = "1", values = { "0", "1" } } },
+	{ "page_width", { default = "0", min = 0, max = 100 } },
+	{ "menu_mode", { default = "top", values = { "top", "side" } } },
+	{ "menu_collapsed", { default = "0", values = { "0", "1" } } },
+	{ "background_pattern", { default = "none", values = { "none", "grid", "dots", "stars", "noise" } } },
+	{ "pattern_scale", { default = "100", min = 50, max = 200 } },
+	{ "custom_font", { default = "1", values = { "0", "1" } } },
+	{ "login_animation", { default = "particles", values = LOGIN_ANIMATIONS } },
+}
+
+local SPEC = {}
+for _, o in ipairs(OPTIONS) do SPEC[o[1]] = o[2] end
+
+local function valid(name, value)
+	local opt = SPEC[name]
+	if not opt then return false end
+	if opt.values then
+		for _, v in ipairs(opt.values) do
+			if v == value then return true end
+		end
+		return false
+	end
+	if opt.pattern == "hex" then
+		return value:match("^#%x%x%x%x%x%x$") ~= nil
+	end
+	if opt.min then
+		local n = tonumber(value)
+		return n ~= nil and n >= opt.min and n <= opt.max
+	end
+	-- свободная строка: только ограничение длины
+	if opt.maxlen then
+		return #value <= opt.maxlen
+	end
+	return true
+end
+
+-- значения из JS бывают строками, числами и логическими
+local function str(v)
+	if type(v) == "boolean" then return v and "1" or "0" end
+	return tostring(v)
+end
+
+local function cursor()
+	local c = uci.cursor()
+	if not c:get(CONFIG, SECTION) then
+		c:section(CONFIG, "theme", SECTION, {})
+	end
+	return c
+end
+
+local methods = {}
+
+function methods.getSettings()
+	local c = uci.cursor()
+	local settings = {}
+	for _, o in ipairs(OPTIONS) do
+		local v = c:get(CONFIG, SECTION, o[1])
+		settings[o[1]] = (v ~= nil) and v or o[2].default
+	end
+	return { settings = settings }
+end
+
+function methods.setSetting(args)
+	local name, value = args.name, args.value
+	if not name or value == nil then
+		return { error = "Missing name or value" }
+	end
+	if not SPEC[name] then
+		return { error = "Unknown option: " .. tostring(name) }
+	end
+	value = str(value)
+	if not valid(name, value) then
+		return { error = "Invalid value for " .. name .. ": " .. value }
+	end
+	local c = cursor()
+	c:set(CONFIG, SECTION, name, value)
+	c:commit(CONFIG)
+	return { success = true, name = name, value = value }
+end
+
+function methods.setSettings(args)
+	local settings = args.settings
+	if type(settings) ~= "table" then
+		return { error = "Missing or invalid settings object" }
+	end
+	local c = cursor()
+	local updated, errors = {}, {}
+	for name, raw in pairs(settings) do
+		local value = str(raw)
+		if not SPEC[name] then
+			errors[#errors + 1] = "Unknown option: " .. tostring(name)
+		elseif not valid(name, value) then
+			errors[#errors + 1] = "Invalid value for " .. name .. ": " .. value
+		else
+			c:set(CONFIG, SECTION, name, value)
+			updated[#updated + 1] = name
+		end
+	end
+	if #updated > 0 then c:commit(CONFIG) end
+	return { success = (#errors == 0), updated = updated, errors = errors }
+end
+
+function methods.resetSettings()
+	local c = cursor()
+	for _, o in ipairs(OPTIONS) do
+		c:set(CONFIG, SECTION, o[1], o[2].default)
+	end
+	c:commit(CONFIG)
+	return { success = true }
+end
+
+local function installed_version()
+	local f = io.popen("opkg list-installed " .. PKG .. " 2>/dev/null")
+	local line = f and f:read("*l") or ""
+	if f then f:close() end
+	return (line:match("^" .. PKG:gsub("%-", "%%-") .. " %- (.+)$") or "")
+end
+
+function methods.getVersion()
+	local v = installed_version()
+	if v == "" then
+		return { success = false, error = "Installed theme package version not found",
+			package_manager = "opkg", current_version = "", release_url = RELEASE_URL }
+	end
+	return { success = true, package_manager = "opkg", current_version = v, release_url = RELEASE_URL }
+end
+
+local NO_UPDATES = "Proton2025 is ported to LuCI 19.07 in this firmware: it is updated with the firmware package feed (opkg update && opkg upgrade " .. PKG .. "), not from upstream releases."
+
+function methods.checkUpdate()
+	local v = installed_version()
+	return { success = false, error = NO_UPDATES, package_manager = "opkg",
+		current_version = v, installed_version = v, update_available = false,
+		release_url = RELEASE_URL }
+end
+
+function methods.installUpdate()
+	return { success = false, error = NO_UPDATES, release_url = RELEASE_URL }
+end
+
+local cmd, method = arg[1], arg[2]
+if cmd == "list" then
+	-- образцы типов аргументов для rpcd: "" — строка, {} — объект
+	io.write('{"getSettings":{},"setSetting":{"name":"","value":""},' ..
+		'"setSettings":{"settings":{}},"resetSettings":{},"getVersion":{},' ..
+		'"checkUpdate":{},"installUpdate":{}}')
+elseif cmd == "call" and methods[method] then
+	local args = jsonc.parse(io.read("*a") or "") or {}
+	io.write(jsonc.stringify(methods[method](type(args) == "table" and args or {}) or {}))
+end

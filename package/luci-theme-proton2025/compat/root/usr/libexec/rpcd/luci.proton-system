@@ -1,0 +1,53 @@
+#!/usr/bin/lua
+-- Proton2025 для LuCI 19.07 (ax50-openwrt): порт rpcd-модуля luci.proton-system.
+-- Архитектура пакетов, таргет и адрес фида пакетов (для ссылок на странице
+-- «Обзор»). Proton2025 Theme, Copyright 2025-2026 ChesterGoodiny. Apache-2.0.
+
+local jsonc = require "luci.jsonc"
+local nfs = require "nixio.fs"
+
+local function readfile(p)
+	local s = nfs.readfile(p)
+	return s and (s:gsub("^%s+", ""):gsub("%s+$", "")) or nil
+end
+
+local function release_value(content, key)
+	return content and content:match(key .. "='([^']*)'") or nil
+end
+
+local function feed_url_in(content, arch)
+	if not content or not arch then return nil end
+	for line in content:gmatch("[^\n]+") do
+		if not line:match("^%s*#") then
+			local url = line:match("(https?://[^%s\"'#]+)")
+			if url then
+				local marker = "/packages/" .. arch
+				local s, e = url:find(marker, 1, true)
+				if s then return url:sub(1, e) .. "/" end
+			end
+		end
+	end
+	return nil
+end
+
+local function getSystemInfo()
+	local rel = readfile("/etc/openwrt_release") or ""
+	local arch = release_value(rel, "DISTRIB_ARCH")
+	local version = release_value(rel, "DISTRIB_RELEASE")
+	local url
+	for _, p in ipairs({ "/etc/opkg/distfeeds.conf", "/etc/opkg/customfeeds.conf" }) do
+		url = feed_url_in(readfile(p), arch)
+		if url then break end
+	end
+	if not url and arch and version and version:match("^%d") then
+		url = "https://downloads.openwrt.org/releases/" .. version .. "/packages/" .. arch .. "/"
+	end
+	return { package_arch = arch, target = release_value(rel, "DISTRIB_TARGET"), package_feed_url = url }
+end
+
+if arg[1] == "list" then
+	io.write('{"getSystemInfo":{}}')
+elseif arg[1] == "call" and arg[2] == "getSystemInfo" then
+	io.read("*a")
+	io.write(jsonc.stringify(getSystemInfo()))
+end

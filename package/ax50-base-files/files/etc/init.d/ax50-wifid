@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# Wi-Fi AX50: настройки драйвера (beamforming, MU-MIMO/OFDMA) и светодиод
+# 5 ГГц во время проверки канала DFS — /usr/libexec/ax50-wifid.
+
+START=98
+USE_PROCD=1
+
+start_service() {
+	procd_open_instance
+	procd_set_param command /usr/libexec/ax50-wifid run
+	procd_set_param respawn
+	procd_close_instance
+}
+
+service_triggers() {
+	# Смена настроек в LuCI: wifi reload перезапустит точки (AP-ENABLED),
+	# но параметры драйвера применяем и сразу
+	procd_add_config_trigger "config.change" "wireless" /usr/libexec/ax50-wifid apply
+}

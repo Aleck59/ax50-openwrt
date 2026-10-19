@@ -1,0 +1,26 @@
+
+config zerotier 'global'
+	# Sets whether ZeroTier is enabled or not
+	option enabled 0
+	# Sets the ZeroTier listening port (default 9993; set to 0 for random)
+	#option port '9993'
+	# Client secret (leave blank to generate a secret on first run)
+	option secret ''
+	# Path of the optional file local.conf (see documentation at
+	# https://docs.zerotier.com/config#local-configuration-options)
+	#option local_conf_path '/etc/zerotier.conf'
+	# Persistent configuration directory (to perform other configurations such
+	# as controller mode or moons, etc.)
+	#option config_path '/etc/zerotier'
+	# Copy the contents of the persistent configuration directory to memory
+	# instead of linking it, this avoids writing to flash
+	#option copy_config_path '1'
+
+# Сети: секции network с option id (16-значный ID сети), настраиваются в LuCI
+# «Службы → ZeroTier». Пример:
+#config network
+#	option id '1234567890123456'
+#	option allow_managed '1'
+#	option allow_global '0'
+#	option allow_default '0'
+#	option allow_dns '0'

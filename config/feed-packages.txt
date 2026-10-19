@@ -71,6 +71,35 @@ usbutils
 block-mount
 kmod-usb-storage
 
+# --- USB: диски ---
+# (программы, которым нужны модули ядра — uqmi, usbip, alsa-utils, cifsmount, —
+# собирает workflow прошивки, см. config/kmods.config)
+smartmontools
+hdparm
+badblocks
+fdisk
+cfdisk
+lsblk
+blkid
+btrfs-progs
+
+# --- USB: устройства ---
+# Телефоны iPhone (раздача интернета по USB)
+usbmuxd
+libimobiledevice-utils
+# ИБП (Network UPS Tools)
+nut-server
+nut-upsc
+nut-upsmon
+nut-driver-usbhid-ups
+# Сканеры (SANE по сети)
+sane-daemon
+sane-backends-all
+# USB-UART: консоль и проброс порта в сеть
+picocom
+minicom
+ser2net
+
 # --- Мониторинг и диагностика ---
 collectd
 vnstat
@@ -136,3 +165,5 @@ lua
 # (hdlc/ioctl.h без IFNAMSIZ), на AX50 не нужен
 !luci-app-dcwapd
 !dcwapd
+# Веб-камеры: нет kmod-video-uvc (см. config/kmods.config)
+!luci-app-mjpg-streamer

@@ -1,0 +1,56 @@
+#!/usr/bin/lua
+-- Proton2025 для LuCI 19.07 (ax50-openwrt): порт rpcd-модуля
+-- luci.proton-search-cache — кэш индекса поиска по страницам в /tmp.
+-- Proton2025 Theme, Copyright 2025-2026 ChesterGoodiny. Apache-2.0.
+
+local jsonc = require "luci.jsonc"
+local nfs = require "nixio.fs"
+
+local CACHE, META = "/tmp/proton-search-prefetch-cache.json", "/tmp/proton-search-prefetch-cache-meta.json"
+
+local function str(v)
+	if type(v) == "string" then return v end
+	if v == nil then return "" end
+	return tostring(v)
+end
+
+local function write_atomic(path, data)
+	local tmp = path .. ".tmp"
+	nfs.unlink(tmp)
+	if not nfs.writefile(tmp, data) then nfs.unlink(tmp) return false end
+	if not nfs.rename(tmp, path) then nfs.unlink(tmp) return false end
+	return true
+end
+
+local methods = {}
+
+function methods.clearCache()
+	nfs.unlink(CACHE .. ".tmp"); nfs.unlink(META .. ".tmp")
+	nfs.unlink(CACHE); nfs.unlink(META)
+	if nfs.access(CACHE) or nfs.access(META) then
+		return { error = "Failed to clear cache" }
+	end
+	return { success = true, cacheBytes = 0 }
+end
+
+function methods.loadCache()
+	local cache, meta = nfs.readfile(CACHE) or "", nfs.readfile(META) or ""
+	return { success = true, cache = cache, meta = meta, cacheBytes = #cache + #meta }
+end
+
+function methods.saveCache(args)
+	local cache, meta = str(args.cache), str(args.meta)
+	if #cache == 0 then return methods.clearCache() end
+	if not write_atomic(CACHE, cache) or not write_atomic(META, meta) then
+		nfs.unlink(CACHE .. ".tmp"); nfs.unlink(META .. ".tmp")
+		return { error = "Failed to save cache" }
+	end
+	return { success = true, cacheBytes = #cache + #meta }
+end
+
+if arg[1] == "list" then
+	io.write('{"loadCache":{},"saveCache":{"cache":"","meta":""},"clearCache":{}}')
+elseif arg[1] == "call" and methods[arg[2]] then
+	local args = jsonc.parse(io.read("*a") or "") or {}
+	io.write(jsonc.stringify(methods[arg[2]](type(args) == "table" and args or {})))
+end

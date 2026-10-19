@@ -31,7 +31,7 @@ cat <<EOF
 **Версии:** AdGuard Home $(pkgver adguardhome || echo "—"), zapret $(pkgver zapret || echo "—"), LuCI тема footstrap $(pkgver luci-theme-footstrap || echo "—").
 
 **Фид пакетов** собирается отдельным workflow и публикуется по адресу
-$PAGES/releases/$TAG/ — он уже прописан в прошивке (\`/etc/opkg/distfeeds.conf\`),
+$PAGES/releases/dev/ (общий для всех версий) — он уже прописан в прошивке (\`/etc/opkg/distfeeds.conf\`),
 так что \`opkg update && opkg install <пакет>\` работает сразу.
 
 > ⚠️ Не стирайте MTD-разделы \`calibration\`, \`uboot\`, \`ubootconfigA/B\` — в них калибровка Wi-Fi и загрузчик.

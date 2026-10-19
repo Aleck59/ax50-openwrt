@@ -1,0 +1,8 @@
+#!/bin/sh
+# Светодиод LAN теперь ведёт служба ax50-lanled; старый триггер netdev на br-lan
+# (горел из-за Wi-Fi без кабелей) удаляется из /etc/config/system.
+[ "$(uci -q get system.led_lan.dev)" = br-lan ] && {
+	uci -q delete system.led_lan
+	uci -q commit system
+}
+exit 0

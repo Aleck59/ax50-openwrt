@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+# Светодиод LAN по линку портов eth0_1..eth0_4 (/usr/libexec/ax50-lanled).
+
+START=98
+USE_PROCD=1
+
+start_service() {
+	procd_open_instance
+	procd_set_param command /usr/libexec/ax50-lanled
+	procd_set_param respawn
+	procd_close_instance
+}

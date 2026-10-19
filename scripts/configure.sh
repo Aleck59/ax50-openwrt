@@ -9,7 +9,8 @@
 #   USIGN_KEY_FILE=… приватный ключ usign: подписывать индексы пакетов, а в
 #                    прошивку положить открытый ключ и включить проверку подписи
 #   FEED_URL=…       адрес фида opkg для этой прошивки; по умолчанию
-#                    https://aleck59.github.io/ax50-openwrt/releases/<версия>
+#                    https://aleck59.github.io/ax50-openwrt/releases/dev — единый фид
+#                    для всех версий (публикуется из последнего релиза)
 #
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
@@ -19,7 +20,7 @@ require_tree
 cd "$TREE"
 
 VERSION="${VERSION:-$(git -C "$REPO_ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)}"
-FEED_URL="${FEED_URL:-https://aleck59.github.io/ax50-openwrt/releases/$VERSION}"
+FEED_URL="${FEED_URL:-https://aleck59.github.io/ax50-openwrt/releases/dev}"
 
 log "Конфигурация: версия $VERSION, фид $FEED_URL"
 {

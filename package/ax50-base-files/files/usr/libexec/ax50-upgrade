@@ -1,0 +1,210 @@
+#!/bin/sh
+# Обновление прошивки из последнего релиза GitHub (LuCI «Система → Обновление
+# прошивки»).
+#
+#   ax50-upgrade check          — JSON: текущая и последняя версия, ссылки
+#   ax50-upgrade start [keep]   — в фоне: скачать, проверить, установить
+#                                 (keep=1 — сохранить настройки, по умолчанию)
+#   ax50-upgrade status         — JSON: этап, прогресс, ошибка
+#   ax50-upgrade abort          — прервать (до начала записи во флеш)
+#
+# Репозиторий — из SUPPORT_URL в /etc/os-release (github.com/<owner>/<repo>),
+# образ — ax50-openwrt-<тег>-squashfs-sysupgrade.bin, проверка — по sha256sums
+# релиза и sysupgrade -T. Скачивание в /tmp (ОЗУ): образ ~25 МБ.
+
+. /usr/share/libubox/jshn.sh
+
+DIR=/tmp/ax50-upgrade
+STATE="$DIR/state"
+API_CACHE="$DIR/release.json"
+PIDFILE="$DIR/pid"
+UA="ax50-upgrade"
+
+repo() {
+	local url
+	url="$(sed -n 's/^SUPPORT_URL="\(.*\)"$/\1/p' /etc/os-release 2>/dev/null)"
+	case "$url" in
+	https://github.com/*/*) url="${url#https://github.com/}"; echo "${url%%/}" | cut -d/ -f1-2 ;;
+	*) echo "Aleck59/ax50-openwrt" ;;
+	esac
+}
+
+current() {
+	. /etc/openwrt_release
+	echo "$DISTRIB_RELEASE"
+}
+
+# a > b ? (числовые части x.y.z, «v» и суффикс «-N-gHASH» отбрасываются)
+newer() {
+	local a b i x y
+	a="${1#v}"; a="${a%%-*}"
+	b="${2#v}"; b="${b%%-*}"
+	case "$b" in ''|*[!0-9.]*) return 0 ;; esac
+	case "$a" in ''|*[!0-9.]*) return 1 ;; esac
+	for i in 1 2 3; do
+		x="$(echo "$a" | cut -d. -f$i)"; y="$(echo "$b" | cut -d. -f$i)"
+		x="${x:-0}"; y="${y:-0}"
+		[ "$x" -gt "$y" ] && return 0
+		[ "$x" -lt "$y" ] && return 1
+	done
+	return 1
+}
+
+set_state() {
+	# $1 этап, $2 сообщение
+	mkdir -p "$DIR"
+	printf '%s\n%s\n' "$1" "$2" > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"
+}
+
+fetch_release() {
+	mkdir -p "$DIR"
+	curl -fsSL --max-time 20 -A "$UA" -H "Accept: application/vnd.github+json" \
+		"https://api.github.com/repos/$(repo)/releases/latest" -o "$API_CACHE.tmp" &&
+		mv "$API_CACHE.tmp" "$API_CACHE"
+}
+
+asset_url() {
+	# $1 — имя файла в релизе
+	jsonfilter -i "$API_CACHE" -e "@.assets[@.name='$1'].browser_download_url" 2>/dev/null
+}
+
+asset_size() {
+	jsonfilter -i "$API_CACHE" -e "@.assets[@.name='$1'].size" 2>/dev/null
+}
+
+cmd_check() {
+	local cur tag img
+	cur="$(current)"
+	json_init
+	json_add_string repo "$(repo)"
+	json_add_string current "$cur"
+	if ! fetch_release; then
+		json_add_string error "Не удалось получить сведения о релизе с GitHub (нет интернета или DNS?)"
+		json_dump; return 0
+	fi
+	tag="$(jsonfilter -i "$API_CACHE" -e '@.tag_name')"
+	img="ax50-openwrt-$tag-squashfs-sysupgrade.bin"
+	json_add_string latest "$tag"
+	json_add_string name "$(jsonfilter -i "$API_CACHE" -e '@.name')"
+	json_add_string published "$(jsonfilter -i "$API_CACHE" -e '@.published_at')"
+	json_add_string url "$(jsonfilter -i "$API_CACHE" -e '@.html_url')"
+	json_add_string body "$(jsonfilter -i "$API_CACHE" -e '@.body')"
+	json_add_string image "$img"
+	json_add_int size "$(asset_size "$img" || echo 0)"
+	if [ -z "$(asset_url "$img")" ] || [ -z "$(asset_url sha256sums)" ]; then
+		json_add_string error "В релизе $tag нет $img или sha256sums"
+	fi
+	if newer "$tag" "$cur"; then
+		json_add_boolean update_available 1
+	else
+		json_add_boolean update_available 0
+	fi
+	json_dump
+}
+
+running() {
+	[ -s "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+cmd_start() {
+	local keep="${1:-1}"
+	if running; then
+		echo '{"started":false,"error":"Обновление уже идёт"}'; return 0
+	fi
+	mkdir -p "$DIR"
+	rm -f "$DIR"/*.bin "$DIR/sha256sums"
+	set_state download "Скачивание"
+	start-stop-daemon -S -b -m -p "$PIDFILE" -x /usr/libexec/ax50-upgrade -- run "$keep"
+	echo '{"started":true}'
+}
+
+fail() {
+	set_state error "$1"
+	logger -t ax50-upgrade "ошибка: $1"
+	rm -f "$DIR"/*.bin
+	exit 1
+}
+
+cmd_run() {
+	local keep="$1" tag img url sum file free size
+	fetch_release || fail "Не удалось получить сведения о релизе с GitHub"
+	tag="$(jsonfilter -i "$API_CACHE" -e '@.tag_name')"
+	img="ax50-openwrt-$tag-squashfs-sysupgrade.bin"
+	url="$(asset_url "$img")"
+	sum="$(asset_url sha256sums)"
+	if [ -z "$url" ] || [ -z "$sum" ]; then
+		fail "В релизе $tag нет $img или sha256sums"
+	fi
+
+	size="$(asset_size "$img")"
+	free="$(df -k /tmp | awk 'NR==2 {print $4}')"
+	if [ -n "$size" ] && [ $(( size / 1024 + 8192 )) -ge "${free:-0}" ]; then
+		fail "Мало места в /tmp для образа"
+	fi
+
+	logger -t ax50-upgrade "скачивание $tag ($(repo))"
+	file="$DIR/$img"
+	set_state download "Скачивание $tag"
+	curl -fsSL --max-time 900 -A "$UA" "$sum" -o "$DIR/sha256sums" || fail "Не удалось скачать sha256sums"
+	curl -fsSL --max-time 900 -A "$UA" "$url" -o "$file" || fail "Не удалось скачать образ"
+
+	set_state verify "Проверка контрольной суммы и образа"
+	( cd "$DIR" && grep "  $img\$" sha256sums | sha256sum -c - >/dev/null 2>&1 ) ||
+		fail "Контрольная сумма не совпадает"
+	sysupgrade -T "$file" >/dev/null 2>&1 || fail "Образ не подходит для этого устройства (sysupgrade -T)"
+
+	set_state flash "Запись прошивки $tag — не выключайте роутер"
+	logger -t ax50-upgrade "установка $tag, сохранение настроек: $keep"
+	rm -f "$PIDFILE"
+	if [ "$keep" = 0 ]; then
+		exec sysupgrade -n "$file"
+	else
+		exec sysupgrade "$file"
+	fi
+}
+
+cmd_status() {
+	local stage msg img size got
+	json_init
+	if [ -s "$STATE" ]; then
+		stage="$(sed -n 1p "$STATE")"; msg="$(sed -n 2p "$STATE")"
+	else
+		stage=idle; msg=""
+	fi
+	# процесс пропал до записи — значит, прерван
+	case "$stage" in
+	download|verify) running || { stage=error; msg="Процесс обновления прерван"; } ;;
+	esac
+	json_add_string stage "$stage"
+	json_add_string message "$msg"
+	if [ "$stage" = download ] && [ -s "$API_CACHE" ]; then
+		img="ax50-openwrt-$(jsonfilter -i "$API_CACHE" -e '@.tag_name')-squashfs-sysupgrade.bin"
+		size="$(asset_size "$img")"
+		got="$(wc -c < "$DIR/$img" 2>/dev/null || echo 0)"
+		json_add_int total "${size:-0}"
+		json_add_int received "${got:-0}"
+	fi
+	json_dump
+}
+
+cmd_abort() {
+	local stage
+	stage="$(sed -n 1p "$STATE" 2>/dev/null)"
+	if [ "$stage" = flash ]; then
+		echo '{"aborted":false,"error":"Прошивка уже записывается"}'
+		return 0
+	fi
+	running && kill "$(cat "$PIDFILE")" 2>/dev/null
+	pkill -f "curl .*$DIR/" 2>/dev/null
+	rm -rf "$DIR"
+	echo '{"aborted":true}'
+}
+
+case "$1" in
+check) cmd_check ;;
+start) cmd_start "$2" ;;
+run) cmd_run "$2" ;;
+status) cmd_status ;;
+abort) cmd_abort ;;
+*) echo "usage: $0 check|start [0|1]|status|abort" >&2; exit 1 ;;
+esac

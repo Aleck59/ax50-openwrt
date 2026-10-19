@@ -1,0 +1,148 @@
+luci-mod-system: обновление прошивки из последнего релиза GitHub
+
+«Резервное копирование / Обновление прошивки» → «Записать новый образ»:
+кнопка «Проверить обновление...» — сведения о последнем релизе,
+скачивание, проверка sha256sums и sysupgrade -T, установка с ожиданием
+перезагрузки. Делает /usr/libexec/ax50-upgrade (ax50-base-files).
+
+--- a/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
++++ b/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
+@@ -308,6 +308,125 @@
+ 			ui.awaitReconnect('192.168.1.1', 'openwrt.lan');
+ 	},
+ 
++	/* ax50-openwrt: обновление из последнего релиза GitHub
++	 * (/usr/libexec/ax50-upgrade: check | start <keep> | status | abort) */
++	upgradeExec: function(args) {
++		return fs.exec('/usr/libexec/ax50-upgrade', args).then(function(res) {
++			try { return JSON.parse(res.stdout || '{}'); }
++			catch (e) { return { error: (res.stderr || res.stdout || 'ax50-upgrade').trim() }; }
++		});
++	},
++
++	handleOnlineCheck: function(ev) {
++		var btn = ev.target;
++		btn.firstChild.data = 'Проверка…';
++
++		return this.upgradeExec([ 'check' ]).then(L.bind(function(r) {
++			if (r.error && !r.latest) {
++				ui.showModal('Обновление из интернета', [
++					E('p', r.error),
++					E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
++				]);
++				return;
++			}
++
++			var keep = E('input', { type: 'checkbox', checked: true }),
++			    date = r.published ? new Date(r.published).toLocaleDateString() : '',
++			    body = [
++				E('p', [ 'Установлена версия: ', E('strong', r.current || '?') ]),
++				E('p', [ 'Последний релиз: ', E('strong', r.latest), date ? ' (' + date + ')' : '',
++					' — ', E('a', { href: r.url, target: '_blank', rel: 'noreferrer' }, 'описание') ]),
++				r.body ? E('pre', { 'style': 'white-space:pre-wrap;max-height:16em;overflow:auto' }, r.body) : '',
++				r.error ? E('p', { 'class': 'alert-message warning' }, r.error) : '',
++				r.update_available ? E('p', 'Образ скачается в память роутера (%.1f МБ), будет проверен по sha256sums и установлен. Роутер перезагрузится.'.format((r.size || 0) / 1048576))
++					: E('p', 'Установлена последняя версия. Можно переустановить её.'),
++				E('p', E('label', [ keep, ' ', _('Keep settings and retain the current configuration') ]))
++			    ];
++
++			body.push(E('div', { 'class': 'right' }, [
++				E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Cancel')), ' ',
++				E('button', {
++					'class': 'btn cbi-button-action important',
++					'disabled': r.error ? true : null,
++					'click': ui.createHandlerFn(this, 'handleOnlineStart', keep, r)
++				}, (r.update_available ? 'Обновить до ' : 'Переустановить ') + r.latest)
++			]));
++
++			ui.showModal('Обновление из интернета', body);
++		}, this)).finally(function() {
++			btn.firstChild.data = 'Проверить обновление...';
++		});
++	},
++
++	handleOnlineStart: function(keep, rel, ev) {
++		var keepSettings = keep.checked,
++		    text = E('p', { 'class': 'spinning' }, 'Запуск…'),
++		    bar = E('div', { 'class': 'cbi-progressbar', 'title': '0%' }, E('div', { 'style': 'width:0%' })),
++		    abort = E('button', { 'class': 'btn' }, _('Cancel')),
++		    flashing = false, timer = null, view = this;
++
++		ui.showModal('Обновление до ' + rel.latest, [ text, bar, E('div', { 'class': 'right' }, abort) ]);
++
++		var finish = function(msg) {
++			window.clearInterval(timer);
++			ui.showModal('Обновление до ' + rel.latest, [
++				E('p', msg),
++				E('div', { 'class': 'right' }, E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Close')))
++			]);
++		};
++
++		var flash = function() {
++			if (flashing)
++				return;
++			flashing = true;
++			window.clearInterval(timer);
++			ui.showModal(_('Flashing…'), [
++				E('p', { 'class': 'spinning' }, _('The system is flashing now.<br /> DO NOT POWER OFF THE DEVICE!<br /> Wait a few minutes before you try to reconnect. It might be necessary to renew the address of your computer to reach the device again, depending on your settings.'))
++			]);
++			if (keepSettings)
++				ui.awaitReconnect(window.location.host);
++			else
++				ui.awaitReconnect('192.168.1.1', 'openwrt.lan');
++		};
++
++		abort.addEventListener('click', function() {
++			view.upgradeExec([ 'abort' ]).then(function() { finish('Обновление отменено.'); });
++		});
++
++		var poll = function() {
++			view.upgradeExec([ 'status' ]).then(function(st) {
++				switch (st.stage) {
++				case 'download':
++					var pct = st.total ? Math.floor(100 * st.received / st.total) : 0;
++					text.firstChild.data = 'Скачивание %s: %.1f из %.1f МБ'.format(rel.latest, (st.received || 0) / 1048576, (st.total || 0) / 1048576);
++					bar.setAttribute('title', pct + '%');
++					bar.firstChild.style.width = pct + '%';
++					break;
++				case 'verify':
++					text.firstChild.data = st.message;
++					bar.firstChild.style.width = '100%';
++					break;
++				case 'flash':
++					flash();
++					break;
++				case 'error':
++					finish('Ошибка: ' + st.message);
++					break;
++				}
++			}).catch(function() {
++				/* sysupgrade останавливает службы — веб-интерфейс пропадает */
++				flash();
++			});
++		};
++
++		return this.upgradeExec([ 'start', keepSettings ? '1' : '0' ]).then(function(r) {
++			if (!r.started)
++				return finish('Ошибка: ' + (r.error || 'не удалось запустить'));
++			timer = window.setInterval(poll, 1000);
++			poll();
++		});
++	},
++
+ 	handleBackupList: function(ev) {
+ 		return fs.exec('/sbin/sysupgrade', [ '--list-backup' ]).then(function(res) {
+ 			if (res.code != 0) {
+@@ -417,6 +536,12 @@
+ 			o.inputstyle = 'action important';
+ 			o.inputtitle = _('Flash image...');
+ 			o.onclick = L.bind(this.handleSysupgrade, this, storage_size);
++
++			o = ss.option(form.Button, 'ax50_online', 'Из интернета',
++				'Скачать последний релиз прошивки с GitHub, проверить контрольную сумму и установить.');
++			o.inputstyle = 'action';
++			o.inputtitle = 'Проверить обновление...';
++			o.onclick = L.bind(this.handleOnlineCheck, this);
+ 		}
+ 
+ 
