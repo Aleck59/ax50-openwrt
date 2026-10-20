@@ -15,8 +15,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Тег релиза прошивки (например v1.0.0)"
-        required: true
+        description: "Тег релиза прошивки (v1.1.0); пусто — последний релиз. Не путать с адресом фида releases/dev"
+        required: false
+        default: ""
         type: string
 
 concurrency:
@@ -25,9 +26,6 @@ concurrency:
 
 permissions:
   contents: read
-
-env:
-  TAG: ${{ inputs.release_tag }}
 
 jobs:
   feed:
@@ -46,9 +44,29 @@ jobs:
           sudo docker image prune -af > /dev/null || true
           df -h /
 
+      # Фид собирается SDK конкретного релиза прошивки. «dev» — это адрес фида
+      # на GitHub Pages, а не тег: пустое значение, latest и dev означают
+      # последний релиз.
+      - name: Тег релиза
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          tag="$INPUT_TAG"
+          case "$tag" in
+          ''|latest|dev)
+            tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)" ;;
+          esac
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::Релиза «$tag» нет. Укажите тег релиза прошивки (например v1.1.0) или оставьте поле пустым"
+            exit 1
+          fi
+          echo "Фид для релиза $tag"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
 
       - name: SDK и пакеты прошивки из релиза
