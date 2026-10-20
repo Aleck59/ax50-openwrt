@@ -8,7 +8,9 @@
 #
 # Выпуск версии:  git tag v1.0.0 && git push origin v1.0.0
 #             или: Actions -> «Прошивка» -> Run workflow (ветка main),
-#                  release_tag = v1.0.0 — тег и релиз создаст сам workflow.
+#                  release_tag = v1.0.0 — тег и релиз создаст сам workflow;
+#             или: релиз, созданный вручную на GitHub, — workflow догрузит в
+#                  него образы и заменит описание.
 #
 name: Прошивка
 
@@ -295,9 +297,19 @@ jobs:
             where="--target ${{ github.sha }}"
           fi
           ( cd out && sha256sum -- *.bin *.img *.manifest *.tar.* > sha256sums )
-          gh release create "$tag" $pre $where \
-            --title "AX50 OpenWrt $tag" --notes-file notes.md \
-            out/*.bin out/*.img out/*.manifest out/*.tar.* out/sha256sums
+          # Релиз могли создать вручную на GitHub (Releases -> Draft a new
+          # release): тогда тег и релиз уже есть — заменить описание и
+          # догрузить файлы, а не падать на «already exists».
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "::notice::Релиз $tag уже существует — обновляю описание и файлы"
+            gh release edit "$tag" $pre --title "AX50 OpenWrt $tag" --notes-file notes.md
+            gh release upload "$tag" --clobber \
+              out/*.bin out/*.img out/*.manifest out/*.tar.* out/sha256sums
+          else
+            gh release create "$tag" $pre $where \
+              --title "AX50 OpenWrt $tag" --notes-file notes.md \
+              out/*.bin out/*.img out/*.manifest out/*.tar.* out/sha256sums
+          fi
 
       - name: Запуск сборки фида (workflow 2)
         env:
